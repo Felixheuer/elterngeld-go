@@ -2,16 +2,15 @@ package integration
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
-	"time"
 
 	"elterngeld-portal/internal/models"
 	"elterngeld-portal/internal/server"
 	"elterngeld-portal/tests/testutils"
+
+	"github.com/gin-gonic/gin"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

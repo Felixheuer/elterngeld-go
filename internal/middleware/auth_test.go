@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"elterngeld-portal/internal/models"
-	"elterngeld-portal/pkg/auth"
 	"elterngeld-portal/tests/testutils"
 
 	"github.com/gin-gonic/gin"
