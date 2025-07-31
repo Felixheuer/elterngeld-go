@@ -1,5 +1,15 @@
 package models
 
+// LeadPriority represents the priority level of a lead
+type LeadPriority string
+
+const (
+	LeadPriorityLow    LeadPriority = "low"
+	LeadPriorityMedium LeadPriority = "medium"
+	LeadPriorityHigh   LeadPriority = "high"
+	LeadPriorityCritical LeadPriority = "critical"
+)
+
 import (
 	"fmt"
 	"strings"

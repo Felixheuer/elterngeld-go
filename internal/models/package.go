@@ -1,5 +1,23 @@
 package models
 
+// PackageTypeService represents a service-based package type
+type PackageTypeService string
+
+const (
+	PackageTypeServiceConsultation PackageTypeService = "consultation"
+	PackageTypeServiceApplication  PackageTypeService = "application"
+	PackageTypeServiceReview      PackageTypeService = "review"
+)
+
+// PackageTypeAddOn represents an add-on package type
+type PackageTypeAddOn string
+
+const (
+	PackageTypeAddOnDocument   PackageTypeAddOn = "document"
+	PackageTypeAddOnTranslation PackageTypeAddOn = "translation"
+	PackageTypeAddOnSupport    PackageTypeAddOn = "support"
+)
+
 import (
 	"fmt"
 	"time"
