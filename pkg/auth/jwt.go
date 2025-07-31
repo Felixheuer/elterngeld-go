@@ -15,9 +15,9 @@ import (
 
 // Claims represents JWT claims
 type Claims struct {
-	UserID uuid.UUID         `json:"user_id"`
-	Email  string            `json:"email"`
-	Role   models.UserRole   `json:"role"`
+	UserID uuid.UUID       `json:"user_id"`
+	Email  string          `json:"email"`
+	Role   models.UserRole `json:"role"`
 	jwt.RegisteredClaims
 }
 
@@ -31,9 +31,9 @@ type TokenPair struct {
 
 // JWTService handles JWT operations
 type JWTService struct {
-	secretKey []byte
-	issuer    string
-	accessTTL time.Duration
+	secretKey  []byte
+	issuer     string
+	accessTTL  time.Duration
 	refreshTTL time.Duration
 }
 
@@ -166,7 +166,7 @@ func (js *JWTService) RefreshTokenExpiry() time.Time {
 // AuthResponse represents authentication response
 type AuthResponse struct {
 	User   models.UserResponse `json:"user"`
-	Tokens TokenPair          `json:"tokens"`
+	Tokens TokenPair           `json:"tokens"`
 }
 
 // LoginRequest represents login request

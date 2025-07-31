@@ -196,14 +196,14 @@ func GetStats() map[string]interface{} {
 
 	stats := sqlDB.Stats()
 	return map[string]interface{}{
-		"status":           "connected",
-		"open_connections": stats.OpenConnections,
-		"in_use":          stats.InUse,
-		"idle":            stats.Idle,
-		"max_open_conns":  stats.MaxOpenConnections,
-		"wait_count":      stats.WaitCount,
-		"wait_duration":   stats.WaitDuration.String(),
-		"max_idle_closed": stats.MaxIdleClosed,
+		"status":              "connected",
+		"open_connections":    stats.OpenConnections,
+		"in_use":              stats.InUse,
+		"idle":                stats.Idle,
+		"max_open_conns":      stats.MaxOpenConnections,
+		"wait_count":          stats.WaitCount,
+		"wait_duration":       stats.WaitDuration.String(),
+		"max_idle_closed":     stats.MaxIdleClosed,
 		"max_lifetime_closed": stats.MaxLifetimeClosed,
 	}
 }
@@ -308,12 +308,12 @@ func SeedData(cfg *config.Config) error {
 
 	// Create admin user
 	admin := &models.User{
-		Email:     cfg.Admin.Email,
-		Password:  cfg.Admin.Password,
-		FirstName: "Admin",
-		LastName:  "Administrator",
-		Role:      models.RoleAdmin,
-		IsActive:  true,
+		Email:         cfg.Admin.Email,
+		Password:      cfg.Admin.Password,
+		FirstName:     "Admin",
+		LastName:      "Administrator",
+		Role:          models.RoleAdmin,
+		IsActive:      true,
 		EmailVerified: true,
 	}
 
@@ -323,12 +323,12 @@ func SeedData(cfg *config.Config) error {
 
 	// Create test berater
 	berater := &models.User{
-		Email:     "berater@elterngeld-portal.de",
-		Password:  "berater123",
-		FirstName: "Max",
-		LastName:  "Berater",
-		Role:      models.RoleBerater,
-		IsActive:  true,
+		Email:         "berater@elterngeld-portal.de",
+		Password:      "berater123",
+		FirstName:     "Max",
+		LastName:      "Berater",
+		Role:          models.RoleBerater,
+		IsActive:      true,
 		EmailVerified: true,
 	}
 
@@ -338,17 +338,17 @@ func SeedData(cfg *config.Config) error {
 
 	// Create test user
 	user := &models.User{
-		Email:     "user@example.com",
-		Password:  "user123",
-		FirstName: "Anna",
-		LastName:  "Mustermann",
-		Role:      models.RoleUser,
-		IsActive:  true,
+		Email:         "user@example.com",
+		Password:      "user123",
+		FirstName:     "Anna",
+		LastName:      "Mustermann",
+		Role:          models.RoleUser,
+		IsActive:      true,
 		EmailVerified: true,
-		Phone:     "+49 151 12345678",
-		Address:   "Musterstraße 123",
-		PostalCode: "12345",
-		City:      "Musterstadt",
+		Phone:         "+49 151 12345678",
+		Address:       "Musterstraße 123",
+		PostalCode:    "12345",
+		City:          "Musterstadt",
 	}
 
 	if err := DB.Create(user).Error; err != nil {
@@ -357,13 +357,13 @@ func SeedData(cfg *config.Config) error {
 
 	// Create test lead
 	lead := &models.Lead{
-		UserID:      user.ID,
-		Title:       "Elterngeld für erstes Kind",
-		Description: "Antrag auf Elterngeld für unser erstes Kind. Geburt voraussichtlich im März 2024.",
-		Status:      models.LeadStatusNew,
-		Priority:    models.PriorityMedium,
-		ChildName:   "Baby Mustermann",
-		ExpectedAmount: 1800.0,
+		UserID:           user.ID,
+		Title:            "Elterngeld für erstes Kind",
+		Description:      "Antrag auf Elterngeld für unser erstes Kind. Geburt voraussichtlich im März 2024.",
+		Status:           models.LeadStatusNew,
+		Priority:         models.PriorityMedium,
+		ChildName:        "Baby Mustermann",
+		ExpectedAmount:   1800.0,
 		PreferredContact: "email",
 	}
 

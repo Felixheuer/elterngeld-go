@@ -343,7 +343,7 @@ func APIKeyMiddleware(validAPIKeys map[string]string) gin.HandlerFunc {
 func CORSMiddleware(allowedOrigins []string, allowCredentials bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		
+
 		// Check if origin is allowed
 		allowed := false
 		for _, allowedOrigin := range allowedOrigins {

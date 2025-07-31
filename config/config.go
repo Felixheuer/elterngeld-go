@@ -12,18 +12,18 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	JWT      JWTConfig
-	Stripe   StripeConfig
-	Upload   UploadConfig
-	S3       S3Config
-	Email    EmailConfig
-	Admin    AdminConfig
-	Log      LogConfig
-	Migrate  MigrateConfig
-	Dev      DevConfig
-	CORS     CORSConfig
+	Server    ServerConfig
+	Database  DatabaseConfig
+	JWT       JWTConfig
+	Stripe    StripeConfig
+	Upload    UploadConfig
+	S3        S3Config
+	Email     EmailConfig
+	Admin     AdminConfig
+	Log       LogConfig
+	Migrate   MigrateConfig
+	Dev       DevConfig
+	CORS      CORSConfig
 	RateLimit RateLimitConfig
 }
 
@@ -34,13 +34,13 @@ type ServerConfig struct {
 }
 
 type DatabaseConfig struct {
-	Driver   string
-	Host     string
-	Port     string
-	User     string
-	Password string
-	Name     string
-	SSLMode  string
+	Driver     string
+	Host       string
+	Port       string
+	User       string
+	Password   string
+	Name       string
+	SSLMode    string
 	SQLitePath string
 }
 
@@ -72,13 +72,13 @@ type S3Config struct {
 }
 
 type EmailConfig struct {
-	Provider     string
-	SMTPHost     string
-	SMTPPort     int
-	SMTPUser     string
-	SMTPPassword string
-	From         string
-	FromName     string
+	Provider      string
+	SMTPHost      string
+	SMTPPort      int
+	SMTPUser      string
+	SMTPPassword  string
+	From          string
+	FromName      string
 	MailgunDomain string
 	MailgunAPIKey string
 }

@@ -12,11 +12,11 @@ import (
 type LeadStatus string
 
 const (
-	LeadStatusNew          LeadStatus = "neu"
-	LeadStatusInProgress   LeadStatus = "in_bearbeitung"
-	LeadStatusQuestion     LeadStatus = "rückfrage"
-	LeadStatusCompleted    LeadStatus = "abgeschlossen"
-	LeadStatusCancelled    LeadStatus = "storniert"
+	LeadStatusNew            LeadStatus = "neu"
+	LeadStatusInProgress     LeadStatus = "in_bearbeitung"
+	LeadStatusQuestion       LeadStatus = "rückfrage"
+	LeadStatusCompleted      LeadStatus = "abgeschlossen"
+	LeadStatusCancelled      LeadStatus = "storniert"
 	LeadStatusPaymentPending LeadStatus = "zahlung_ausstehend"
 )
 
@@ -31,58 +31,58 @@ const (
 
 // Lead represents an Elterngeld application/case
 type Lead struct {
-	ID          uuid.UUID  `json:"id" gorm:"type:char(36);primary_key"`
-	UserID      uuid.UUID  `json:"user_id" gorm:"type:char(36);not null;index"`
-	BeraterID   *uuid.UUID `json:"berater_id" gorm:"type:char(36);index"`
-	
+	ID        uuid.UUID  `json:"id" gorm:"type:char(36);primary_key"`
+	UserID    uuid.UUID  `json:"user_id" gorm:"type:char(36);not null;index"`
+	BeraterID *uuid.UUID `json:"berater_id" gorm:"type:char(36);index"`
+
 	// Lead information
 	Title       string     `json:"title" gorm:"not null" validate:"required"`
 	Description string     `json:"description" gorm:"type:text"`
 	Status      LeadStatus `json:"status" gorm:"not null;default:'neu'" validate:"required"`
 	Priority    Priority   `json:"priority" gorm:"not null;default:'mittel'" validate:"required"`
-	
+
 	// Elterngeld specific fields
 	ChildName         string     `json:"child_name" gorm:""`
 	ChildBirthDate    *time.Time `json:"child_birth_date" gorm:""`
 	ExpectedAmount    float64    `json:"expected_amount" gorm:""`
 	ApplicationNumber string     `json:"application_number" gorm:"uniqueIndex"`
-	
+
 	// Contact preferences
 	PreferredContact string `json:"preferred_contact" gorm:"default:'email'"` // email, phone, both
-	
+
 	// Timeline
 	DueDate     *time.Time `json:"due_date" gorm:""`
 	CompletedAt *time.Time `json:"completed_at" gorm:""`
-	
+
 	// Internal notes
 	InternalNotes string `json:"internal_notes" gorm:"type:text"`
-	
+
 	// Timestamps
 	CreatedAt time.Time      `json:"created_at" gorm:"not null"`
 	UpdatedAt time.Time      `json:"updated_at" gorm:"not null"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
-	
+
 	// Relationships
-	User       User        `json:"user,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Berater    *User       `json:"berater,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Documents  []Document  `json:"documents,omitempty" gorm:"foreignKey:LeadID"`
-	Activities []Activity  `json:"activities,omitempty" gorm:"foreignKey:LeadID"`
-	Payments   []Payment   `json:"payments,omitempty" gorm:"foreignKey:LeadID"`
-	Comments   []Comment   `json:"comments,omitempty" gorm:"foreignKey:LeadID"`
+	User       User       `json:"user,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Berater    *User      `json:"berater,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
+	Documents  []Document `json:"documents,omitempty" gorm:"foreignKey:LeadID"`
+	Activities []Activity `json:"activities,omitempty" gorm:"foreignKey:LeadID"`
+	Payments   []Payment  `json:"payments,omitempty" gorm:"foreignKey:LeadID"`
+	Comments   []Comment  `json:"comments,omitempty" gorm:"foreignKey:LeadID"`
 }
 
 // Comment represents comments on a lead
 type Comment struct {
-	ID        uuid.UUID `json:"id" gorm:"type:char(36);primary_key"`
-	LeadID    uuid.UUID `json:"lead_id" gorm:"type:char(36);not null;index"`
-	UserID    uuid.UUID `json:"user_id" gorm:"type:char(36);not null;index"`
-	Content   string    `json:"content" gorm:"type:text;not null" validate:"required"`
-	IsInternal bool     `json:"is_internal" gorm:"not null;default:false"`
-	
+	ID         uuid.UUID `json:"id" gorm:"type:char(36);primary_key"`
+	LeadID     uuid.UUID `json:"lead_id" gorm:"type:char(36);not null;index"`
+	UserID     uuid.UUID `json:"user_id" gorm:"type:char(36);not null;index"`
+	Content    string    `json:"content" gorm:"type:text;not null" validate:"required"`
+	IsInternal bool      `json:"is_internal" gorm:"not null;default:false"`
+
 	CreatedAt time.Time      `json:"created_at" gorm:"not null"`
 	UpdatedAt time.Time      `json:"updated_at" gorm:"not null"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
-	
+
 	// Relationships
 	Lead Lead `json:"lead,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	User User `json:"user,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
@@ -90,13 +90,13 @@ type Comment struct {
 
 // CreateLeadRequest represents the request body for creating a lead
 type CreateLeadRequest struct {
-	Title             string     `json:"title" validate:"required"`
-	Description       string     `json:"description"`
-	ChildName         string     `json:"child_name"`
-	ChildBirthDate    *time.Time `json:"child_birth_date"`
-	ExpectedAmount    float64    `json:"expected_amount"`
-	PreferredContact  string     `json:"preferred_contact" validate:"omitempty,oneof=email phone both"`
-	DueDate           *time.Time `json:"due_date"`
+	Title            string     `json:"title" validate:"required"`
+	Description      string     `json:"description"`
+	ChildName        string     `json:"child_name"`
+	ChildBirthDate   *time.Time `json:"child_birth_date"`
+	ExpectedAmount   float64    `json:"expected_amount"`
+	PreferredContact string     `json:"preferred_contact" validate:"omitempty,oneof=email phone both"`
+	DueDate          *time.Time `json:"due_date"`
 }
 
 // UpdateLeadRequest represents the request body for updating a lead
@@ -158,12 +158,12 @@ func (l *Lead) BeforeCreate(tx *gorm.DB) error {
 	if l.ID == uuid.Nil {
 		l.ID = uuid.New()
 	}
-	
+
 	// Generate application number if not provided
 	if l.ApplicationNumber == "" {
 		l.ApplicationNumber = l.generateApplicationNumber()
 	}
-	
+
 	return nil
 }
 
@@ -197,17 +197,17 @@ func (l *Lead) ToResponse() LeadResponse {
 		DocumentCount:     len(l.Documents),
 		CommentCount:      len(l.Comments),
 	}
-	
+
 	if l.User.ID != uuid.Nil {
 		userResponse := l.User.ToResponse()
 		response.User = &userResponse
 	}
-	
+
 	if l.Berater != nil && l.Berater.ID != uuid.Nil {
 		beraterResponse := l.Berater.ToResponse()
 		response.Berater = &beraterResponse
 	}
-	
+
 	return response
 }
 
@@ -241,18 +241,18 @@ func (l *Lead) CanTransitionTo(newStatus LeadStatus) bool {
 			LeadStatusInProgress,
 		},
 	}
-	
+
 	allowed, exists := allowedTransitions[l.Status]
 	if !exists {
 		return false
 	}
-	
+
 	for _, status := range allowed {
 		if status == newStatus {
 			return true
 		}
 	}
-	
+
 	return false
 }
 

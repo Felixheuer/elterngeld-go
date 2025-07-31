@@ -32,46 +32,46 @@ type Payment struct {
 	ID     uuid.UUID `json:"id" gorm:"type:char(36);primary_key"`
 	LeadID uuid.UUID `json:"lead_id" gorm:"type:char(36);not null;index"`
 	UserID uuid.UUID `json:"user_id" gorm:"type:char(36);not null;index"`
-	
+
 	// Payment information
-	Amount        float64       `json:"amount" gorm:"not null"`
-	Currency      string        `json:"currency" gorm:"not null;default:'EUR'"`
-	Status        PaymentStatus `json:"status" gorm:"not null;default:'pending'"`
-	Method        PaymentMethod `json:"method" gorm:"not null;default:'stripe'"`
-	Description   string        `json:"description" gorm:"type:text"`
-	
+	Amount      float64       `json:"amount" gorm:"not null"`
+	Currency    string        `json:"currency" gorm:"not null;default:'EUR'"`
+	Status      PaymentStatus `json:"status" gorm:"not null;default:'pending'"`
+	Method      PaymentMethod `json:"method" gorm:"not null;default:'stripe'"`
+	Description string        `json:"description" gorm:"type:text"`
+
 	// Stripe specific fields
-	StripeSessionID      string `json:"stripe_session_id" gorm:"uniqueIndex"`
-	StripePaymentIntent  string `json:"stripe_payment_intent" gorm:""`
-	StripeCustomerID     string `json:"stripe_customer_id" gorm:""`
-	StripeChargeID       string `json:"stripe_charge_id" gorm:""`
-	
+	StripeSessionID     string `json:"stripe_session_id" gorm:"uniqueIndex"`
+	StripePaymentIntent string `json:"stripe_payment_intent" gorm:""`
+	StripeCustomerID    string `json:"stripe_customer_id" gorm:""`
+	StripeChargeID      string `json:"stripe_charge_id" gorm:""`
+
 	// Payment details
 	PaymentMethodDetails string `json:"payment_method_details" gorm:"type:text"`
-	ReceiptURL          string `json:"receipt_url" gorm:""`
-	
+	ReceiptURL           string `json:"receipt_url" gorm:""`
+
 	// Billing information
 	BillingName    string `json:"billing_name" gorm:""`
 	BillingEmail   string `json:"billing_email" gorm:""`
 	BillingAddress string `json:"billing_address" gorm:"type:text"`
-	
+
 	// Timestamps
-	PaidAt    *time.Time `json:"paid_at" gorm:""`
-	FailedAt  *time.Time `json:"failed_at" gorm:""`
+	PaidAt     *time.Time `json:"paid_at" gorm:""`
+	FailedAt   *time.Time `json:"failed_at" gorm:""`
 	RefundedAt *time.Time `json:"refunded_at" gorm:""`
-	
+
 	CreatedAt time.Time      `json:"created_at" gorm:"not null"`
 	UpdatedAt time.Time      `json:"updated_at" gorm:"not null"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
-	
+
 	// Failure information
 	FailureCode    string `json:"failure_code" gorm:""`
 	FailureMessage string `json:"failure_message" gorm:"type:text"`
-	
+
 	// Refund information
 	RefundAmount float64 `json:"refund_amount" gorm:"default:0"`
 	RefundReason string  `json:"refund_reason" gorm:"type:text"`
-	
+
 	// Relationships
 	Lead Lead `json:"lead,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	User User `json:"user,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
@@ -79,36 +79,36 @@ type Payment struct {
 
 // PaymentResponse represents the payment data returned in API responses
 type PaymentResponse struct {
-	ID                   uuid.UUID     `json:"id"`
-	LeadID               uuid.UUID     `json:"lead_id"`
-	UserID               uuid.UUID     `json:"user_id"`
-	Amount               float64       `json:"amount"`
-	Currency             string        `json:"currency"`
-	Status               PaymentStatus `json:"status"`
-	Method               PaymentMethod `json:"method"`
-	Description          string        `json:"description"`
-	BillingName          string        `json:"billing_name"`
-	BillingEmail         string        `json:"billing_email"`
-	ReceiptURL           string        `json:"receipt_url"`
-	PaidAt               *time.Time    `json:"paid_at"`
-	FailedAt             *time.Time    `json:"failed_at"`
-	RefundedAt           *time.Time    `json:"refunded_at"`
-	CreatedAt            time.Time     `json:"created_at"`
-	UpdatedAt            time.Time     `json:"updated_at"`
-	FailureCode          string        `json:"failure_code"`
-	FailureMessage       string        `json:"failure_message"`
-	RefundAmount         float64       `json:"refund_amount"`
-	RefundReason         string        `json:"refund_reason"`
-	FormattedAmount      string        `json:"formatted_amount"`
-	FormattedRefundAmount string       `json:"formatted_refund_amount"`
+	ID                    uuid.UUID     `json:"id"`
+	LeadID                uuid.UUID     `json:"lead_id"`
+	UserID                uuid.UUID     `json:"user_id"`
+	Amount                float64       `json:"amount"`
+	Currency              string        `json:"currency"`
+	Status                PaymentStatus `json:"status"`
+	Method                PaymentMethod `json:"method"`
+	Description           string        `json:"description"`
+	BillingName           string        `json:"billing_name"`
+	BillingEmail          string        `json:"billing_email"`
+	ReceiptURL            string        `json:"receipt_url"`
+	PaidAt                *time.Time    `json:"paid_at"`
+	FailedAt              *time.Time    `json:"failed_at"`
+	RefundedAt            *time.Time    `json:"refunded_at"`
+	CreatedAt             time.Time     `json:"created_at"`
+	UpdatedAt             time.Time     `json:"updated_at"`
+	FailureCode           string        `json:"failure_code"`
+	FailureMessage        string        `json:"failure_message"`
+	RefundAmount          float64       `json:"refund_amount"`
+	RefundReason          string        `json:"refund_reason"`
+	FormattedAmount       string        `json:"formatted_amount"`
+	FormattedRefundAmount string        `json:"formatted_refund_amount"`
 }
 
 // CreatePaymentRequest represents the request body for creating a payment
 type CreatePaymentRequest struct {
-	LeadID      uuid.UUID `json:"lead_id" validate:"required"`
-	Amount      float64   `json:"amount" validate:"required,gt=0"`
-	Currency    string    `json:"currency" validate:"omitempty,len=3"`
-	Description string    `json:"description"`
+	LeadID      uuid.UUID     `json:"lead_id" validate:"required"`
+	Amount      float64       `json:"amount" validate:"required,gt=0"`
+	Currency    string        `json:"currency" validate:"omitempty,len=3"`
+	Description string        `json:"description"`
 	Method      PaymentMethod `json:"method" validate:"omitempty,oneof=stripe bank_transfer cash"`
 }
 
@@ -123,8 +123,8 @@ type StripeCheckoutRequest struct {
 
 // StripeCheckoutResponse represents the response for Stripe checkout session
 type StripeCheckoutResponse struct {
-	SessionID   string `json:"session_id"`
-	CheckoutURL string `json:"checkout_url"`
+	SessionID   string    `json:"session_id"`
+	CheckoutURL string    `json:"checkout_url"`
 	PaymentID   uuid.UUID `json:"payment_id"`
 }
 

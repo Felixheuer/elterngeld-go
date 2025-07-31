@@ -12,45 +12,45 @@ import (
 type ActivityType string
 
 const (
-	ActivityTypeLeadCreated        ActivityType = "lead_created"
-	ActivityTypeLeadUpdated        ActivityType = "lead_updated"
-	ActivityTypeLeadStatusChanged  ActivityType = "lead_status_changed"
-	ActivityTypeLeadAssigned       ActivityType = "lead_assigned"
-	ActivityTypeCommentAdded       ActivityType = "comment_added"
-	ActivityTypeDocumentUploaded   ActivityType = "document_uploaded"
-	ActivityTypeDocumentDeleted    ActivityType = "document_deleted"
-	ActivityTypePaymentCreated     ActivityType = "payment_created"
-	ActivityTypePaymentCompleted   ActivityType = "payment_completed"
-	ActivityTypePaymentFailed      ActivityType = "payment_failed"
-	ActivityTypeUserRegistered     ActivityType = "user_registered"
-	ActivityTypeUserLogin          ActivityType = "user_login"
-	ActivityTypeUserLogout         ActivityType = "user_logout"
-	ActivityTypePasswordChanged    ActivityType = "password_changed"
-	ActivityTypeEmailSent          ActivityType = "email_sent"
-	ActivityTypeSystem             ActivityType = "system"
+	ActivityTypeLeadCreated       ActivityType = "lead_created"
+	ActivityTypeLeadUpdated       ActivityType = "lead_updated"
+	ActivityTypeLeadStatusChanged ActivityType = "lead_status_changed"
+	ActivityTypeLeadAssigned      ActivityType = "lead_assigned"
+	ActivityTypeCommentAdded      ActivityType = "comment_added"
+	ActivityTypeDocumentUploaded  ActivityType = "document_uploaded"
+	ActivityTypeDocumentDeleted   ActivityType = "document_deleted"
+	ActivityTypePaymentCreated    ActivityType = "payment_created"
+	ActivityTypePaymentCompleted  ActivityType = "payment_completed"
+	ActivityTypePaymentFailed     ActivityType = "payment_failed"
+	ActivityTypeUserRegistered    ActivityType = "user_registered"
+	ActivityTypeUserLogin         ActivityType = "user_login"
+	ActivityTypeUserLogout        ActivityType = "user_logout"
+	ActivityTypePasswordChanged   ActivityType = "password_changed"
+	ActivityTypeEmailSent         ActivityType = "email_sent"
+	ActivityTypeSystem            ActivityType = "system"
 )
 
 // Activity represents an activity/event in the system
 type Activity struct {
-	ID       uuid.UUID    `json:"id" gorm:"type:char(36);primary_key"`
-	UserID   *uuid.UUID   `json:"user_id" gorm:"type:char(36);index"`
-	LeadID   *uuid.UUID   `json:"lead_id" gorm:"type:char(36);index"`
-	
+	ID     uuid.UUID  `json:"id" gorm:"type:char(36);primary_key"`
+	UserID *uuid.UUID `json:"user_id" gorm:"type:char(36);index"`
+	LeadID *uuid.UUID `json:"lead_id" gorm:"type:char(36);index"`
+
 	// Activity information
 	Type        ActivityType `json:"type" gorm:"not null;index" validate:"required"`
 	Title       string       `json:"title" gorm:"not null" validate:"required"`
 	Description string       `json:"description" gorm:"type:text"`
-	
+
 	// Metadata as JSON
-	Metadata    json.RawMessage `json:"metadata" gorm:"type:jsonb"`
-	
+	Metadata json.RawMessage `json:"metadata" gorm:"type:jsonb"`
+
 	// Request information
 	IPAddress string `json:"ip_address" gorm:""`
 	UserAgent string `json:"user_agent" gorm:""`
-	
+
 	// Timestamps
 	CreatedAt time.Time `json:"created_at" gorm:"not null;index"`
-	
+
 	// Relationships
 	User *User `json:"user,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Lead *Lead `json:"lead,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
@@ -72,12 +72,12 @@ type ActivityResponse struct {
 
 // ActivityMetadata represents common metadata structure
 type ActivityMetadata struct {
-	OldValue    interface{} `json:"old_value,omitempty"`
-	NewValue    interface{} `json:"new_value,omitempty"`
-	Field       string      `json:"field,omitempty"`
-	EntityID    string      `json:"entity_id,omitempty"`
-	EntityType  string      `json:"entity_type,omitempty"`
-	ExtraData   interface{} `json:"extra_data,omitempty"`
+	OldValue   interface{} `json:"old_value,omitempty"`
+	NewValue   interface{} `json:"new_value,omitempty"`
+	Field      string      `json:"field,omitempty"`
+	EntityID   string      `json:"entity_id,omitempty"`
+	EntityType string      `json:"entity_type,omitempty"`
+	ExtraData  interface{} `json:"extra_data,omitempty"`
 }
 
 // BeforeCreate is a GORM hook that runs before creating an activity
@@ -101,12 +101,12 @@ func (a *Activity) ToResponse() ActivityResponse {
 		IPAddress:   a.IPAddress,
 		CreatedAt:   a.CreatedAt,
 	}
-	
+
 	if a.User != nil && a.User.ID != uuid.Nil {
 		userResponse := a.User.ToResponse()
 		response.User = &userResponse
 	}
-	
+
 	return response
 }
 
@@ -116,12 +116,12 @@ func (a *Activity) SetMetadata(metadata interface{}) error {
 		a.Metadata = nil
 		return nil
 	}
-	
+
 	data, err := json.Marshal(metadata)
 	if err != nil {
 		return err
 	}
-	
+
 	a.Metadata = data
 	return nil
 }
@@ -131,7 +131,7 @@ func (a *Activity) GetMetadata(target interface{}) error {
 	if a.Metadata == nil {
 		return nil
 	}
-	
+
 	return json.Unmarshal(a.Metadata, target)
 }
 
@@ -302,7 +302,7 @@ func CreateLeadStatusChangedActivity(userID, leadID uuid.UUID, oldStatus, newSta
 		NewValue: string(newStatus),
 		Field:    "status",
 	}
-	
+
 	return NewActivityBuilder().
 		WithType(ActivityTypeLeadStatusChanged).
 		WithTitle("Lead-Status geändert").
@@ -322,7 +322,7 @@ func CreateDocumentUploadedActivity(userID, leadID uuid.UUID, fileName string, d
 			"document_type": documentType,
 		},
 	}
-	
+
 	return NewActivityBuilder().
 		WithType(ActivityTypeDocumentUploaded).
 		WithTitle("Dokument hochgeladen").
@@ -341,7 +341,7 @@ func CreatePaymentCompletedActivity(userID, leadID uuid.UUID, amount float64, cu
 			"currency": currency,
 		},
 	}
-	
+
 	return NewActivityBuilder().
 		WithType(ActivityTypePaymentCompleted).
 		WithTitle("Zahlung abgeschlossen").

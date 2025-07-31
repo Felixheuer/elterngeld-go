@@ -17,38 +17,38 @@ const (
 	DocumentTypeIncomeProof      DocumentType = "einkommensnachweis"
 	DocumentTypeEmploymentCert   DocumentType = "arbeitsbescheinigung"
 	DocumentTypeApplication      DocumentType = "antrag"
-	DocumentTypeOther           DocumentType = "sonstiges"
+	DocumentTypeOther            DocumentType = "sonstiges"
 )
 
 // Document represents an uploaded file/document
 type Document struct {
-	ID       uuid.UUID `json:"id" gorm:"type:char(36);primary_key"`
-	LeadID   uuid.UUID `json:"lead_id" gorm:"type:char(36);not null;index"`
-	UserID   uuid.UUID `json:"user_id" gorm:"type:char(36);not null;index"`
-	
+	ID     uuid.UUID `json:"id" gorm:"type:char(36);primary_key"`
+	LeadID uuid.UUID `json:"lead_id" gorm:"type:char(36);not null;index"`
+	UserID uuid.UUID `json:"user_id" gorm:"type:char(36);not null;index"`
+
 	// File information
-	FileName     string       `json:"file_name" gorm:"not null" validate:"required"`
-	OriginalName string       `json:"original_name" gorm:"not null" validate:"required"`
-	FilePath     string       `json:"file_path" gorm:"not null" validate:"required"`
-	FileSize     int64        `json:"file_size" gorm:"not null"`
-	ContentType  string       `json:"content_type" gorm:"not null"`
-	FileExtension string      `json:"file_extension" gorm:"not null"`
-	
+	FileName      string `json:"file_name" gorm:"not null" validate:"required"`
+	OriginalName  string `json:"original_name" gorm:"not null" validate:"required"`
+	FilePath      string `json:"file_path" gorm:"not null" validate:"required"`
+	FileSize      int64  `json:"file_size" gorm:"not null"`
+	ContentType   string `json:"content_type" gorm:"not null"`
+	FileExtension string `json:"file_extension" gorm:"not null"`
+
 	// Document metadata
 	DocumentType DocumentType `json:"document_type" gorm:"not null;default:'sonstiges'" validate:"required"`
 	Description  string       `json:"description" gorm:"type:text"`
 	IsProcessed  bool         `json:"is_processed" gorm:"not null;default:false"`
-	
+
 	// S3 information (if using S3)
 	S3Bucket string `json:"s3_bucket" gorm:""`
 	S3Key    string `json:"s3_key" gorm:""`
 	S3URL    string `json:"s3_url" gorm:""`
-	
+
 	// Timestamps
 	CreatedAt time.Time      `json:"created_at" gorm:"not null"`
 	UpdatedAt time.Time      `json:"updated_at" gorm:"not null"`
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
-	
+
 	// Relationships
 	Lead Lead `json:"lead,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	User User `json:"user,omitempty" gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
@@ -90,12 +90,12 @@ func (d *Document) BeforeCreate(tx *gorm.DB) error {
 	if d.ID == uuid.Nil {
 		d.ID = uuid.New()
 	}
-	
+
 	// Extract file extension from original name
 	if d.FileExtension == "" && d.OriginalName != "" {
 		d.FileExtension = strings.ToLower(filepath.Ext(d.OriginalName))
 	}
-	
+
 	return nil
 }
 
@@ -107,7 +107,7 @@ func (d *Document) ToResponse(baseURL string) DocumentResponse {
 	} else if baseURL != "" {
 		downloadURL = baseURL + "/api/v1/documents/" + d.ID.String() + "/download"
 	}
-	
+
 	return DocumentResponse{
 		ID:            d.ID,
 		LeadID:        d.LeadID,
@@ -147,12 +147,12 @@ func (d *Document) IsValid() bool {
 	validTypes := []string{
 		"application/pdf",
 		"image/jpeg",
-		"image/jpg", 
+		"image/jpg",
 		"image/png",
 		"image/gif",
 		"image/webp",
 	}
-	
+
 	for _, validType := range validTypes {
 		if d.ContentType == validType {
 			return true
@@ -167,13 +167,13 @@ func (d *Document) GetHumanReadableSize() string {
 	if d.FileSize < unit {
 		return fmt.Sprintf("%d B", d.FileSize)
 	}
-	
+
 	div, exp := int64(unit), 0
 	for n := d.FileSize / unit; n >= unit; n /= unit {
 		div *= unit
 		exp++
 	}
-	
+
 	return fmt.Sprintf("%.1f %cB", float64(d.FileSize)/float64(div), "KMGTPE"[exp])
 }
 

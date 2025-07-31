@@ -82,7 +82,7 @@ func DetailedLoggingMiddleware(logger *zap.Logger, logRequestBody bool, logRespo
 			responseBody = new(bytes.Buffer)
 			responseWriter = &responseBodyWriter{
 				ResponseWriter: c.Writer,
-				body:          responseBody,
+				body:           responseBody,
 			}
 			c.Writer = responseWriter
 		}
@@ -164,12 +164,12 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 		c.Header("X-Frame-Options", "DENY")
 		c.Header("X-XSS-Protection", "1; mode=block")
 		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
-		
+
 		// Only add HSTS in production with HTTPS
 		if c.Request.TLS != nil {
 			c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
-		
+
 		c.Next()
 	}
 }
