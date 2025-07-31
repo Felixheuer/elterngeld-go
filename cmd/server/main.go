@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"elterngeld-portal/config"
+	_ "elterngeld-portal/docs" // Import generated docs
 	"elterngeld-portal/internal/database"
 	"elterngeld-portal/internal/server"
 	"elterngeld-portal/pkg/logger"
