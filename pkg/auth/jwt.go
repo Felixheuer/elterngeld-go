@@ -140,7 +140,7 @@ func (js *JWTService) IsTokenExpired(tokenString string) bool {
 		return true
 	}
 
-	return claims.ExpiresAt.Time.Before(time.Now())
+	return claims.RegisteredClaims.ExpiresAt.Time.Before(time.Now())
 }
 
 // GetTokenClaims extracts claims from a token without validation (for expired tokens)
@@ -278,7 +278,7 @@ func (js *JWTService) ValidateTokenWithBlacklist(tokenString string) (*Claims, e
 	}
 
 	// Check if token is blacklisted
-	if GlobalTokenBlacklist.IsBlacklisted(claims.ID) {
+	if GlobalTokenBlacklist.IsBlacklisted(claims.RegisteredClaims.ID) {
 		return nil, ErrTokenBlacklisted
 	}
 
@@ -292,6 +292,6 @@ func (js *JWTService) BlacklistToken(tokenString string) error {
 		return err
 	}
 
-	GlobalTokenBlacklist.Add(claims.ID, claims.ExpiresAt.Time)
+	GlobalTokenBlacklist.Add(claims.RegisteredClaims.ID, claims.RegisteredClaims.ExpiresAt.Time)
 	return nil
 }
