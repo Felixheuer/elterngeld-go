@@ -3,8 +3,6 @@ package logger
 import (
 	"bytes"
 	"encoding/json"
-	"io"
-	"os"
 	"strings"
 	"testing"
 
@@ -13,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestInit_ProductionConfig(t *testing.T) {
@@ -453,46 +452,41 @@ func cleanupLogger() {
 }
 
 func captureLogOutput(t *testing.T, logFunc func()) string {
-	// Create a pipe to capture output
-	r, w, err := os.Pipe()
-	require.NoError(t, err)
-
-	// Save original stdout/stderr
-	originalStdout := os.Stdout
-	originalStderr := os.Stderr
-
-	// Redirect stdout/stderr to our pipe
-	os.Stdout = w
-	os.Stderr = w
-
 	// Create a buffer to capture output
 	var buf bytes.Buffer
-	done := make(chan bool)
-
-	// Start copying output to buffer
-	go func() {
-		io.Copy(&buf, r)
-		done <- true
-	}()
-
+	
+	// Save the current logger
+	originalLogger := Logger
+	
+	// Create a new logger that writes to our buffer
+	writer := zapcore.AddSync(&buf)
+	encoder := zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
+		TimeKey:        "T",
+		LevelKey:       "L",
+		NameKey:        "N",
+		CallerKey:      "C",
+		MessageKey:     "M",
+		StacktraceKey:  "S",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	})
+	core := zapcore.NewCore(encoder, writer, zapcore.DebugLevel)
+	Logger = zap.New(core).With(zap.String("service", "test-service"))
+	
 	// Execute the logging function
 	logFunc()
-
+	
 	// Force logger to flush
 	if Logger != nil {
 		Logger.Sync()
 	}
-
-	// Restore original stdout/stderr
-	os.Stdout = originalStdout
-	os.Stderr = originalStderr
-
-	// Close the write end of the pipe
-	w.Close()
-
-	// Wait for copy to complete
-	<-done
-
+	
+	// Restore original logger
+	Logger = originalLogger
+	
 	return strings.TrimSpace(buf.String())
 }
 
