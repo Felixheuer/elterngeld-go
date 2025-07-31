@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"elterngeld-portal/config"
+	"elterngeld-portal/internal/database"
+	"elterngeld-portal/internal/handlers"
 	"elterngeld-portal/internal/middleware"
 	"elterngeld-portal/pkg/auth"
 
@@ -11,6 +13,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 // Server represents the HTTP server
@@ -19,6 +22,15 @@ type Server struct {
 	config     *config.Config
 	logger     *zap.Logger
 	jwtService *auth.JWTService
+	db         *gorm.DB
+	
+	// Handlers
+	authHandler     *handlers.AuthHandler
+	userHandler     *handlers.UserHandler
+	leadHandler     *handlers.LeadHandler
+	bookingHandler  *handlers.BookingHandler
+	paymentHandler  *handlers.PaymentHandler
+	documentHandler *handlers.DocumentHandler
 }
 
 // New creates a new server instance
@@ -36,11 +48,32 @@ func New(cfg *config.Config, logger *zap.Logger) *Server {
 	// Initialize JWT service
 	jwtService := auth.NewJWTService(cfg)
 
+	// Initialize database connection
+	db, err := database.Connect(cfg, logger)
+	if err != nil {
+		logger.Fatal("Failed to connect to database", zap.Error(err))
+	}
+
+	// Initialize handlers
+	authHandler := handlers.NewAuthHandler(db, logger, jwtService, cfg)
+	userHandler := handlers.NewUserHandler(db, logger)
+	leadHandler := handlers.NewLeadHandler(db, logger)
+	bookingHandler := handlers.NewBookingHandler(db, logger)
+	paymentHandler := handlers.NewPaymentHandler(db, logger, cfg)
+	documentHandler := handlers.NewDocumentHandler(db, logger, cfg)
+
 	server := &Server{
-		Router:     router,
-		config:     cfg,
-		logger:     logger,
-		jwtService: jwtService,
+		Router:          router,
+		config:          cfg,
+		logger:          logger,
+		jwtService:      jwtService,
+		db:              db,
+		authHandler:     authHandler,
+		userHandler:     userHandler,
+		leadHandler:     leadHandler,
+		bookingHandler:  bookingHandler,
+		paymentHandler:  paymentHandler,
+		documentHandler: documentHandler,
 	}
 
 	// Setup middleware
@@ -102,12 +135,18 @@ func (s *Server) setupRoutes() {
 			// Authentication routes
 			auth := public.Group("/auth")
 			{
-				auth.POST("/register", s.placeholder("Register"))
-				auth.POST("/login", s.placeholder("Login"))
-				auth.POST("/refresh", s.placeholder("Refresh Token"))
-				auth.POST("/forgot-password", s.placeholder("Forgot Password"))
-				auth.POST("/reset-password", s.placeholder("Reset Password"))
+				auth.POST("/register", s.authHandler.Register)
+				auth.POST("/login", s.authHandler.Login)
+				auth.POST("/refresh", s.authHandler.RefreshToken)
+				auth.POST("/forgot-password", s.authHandler.ForgotPassword)
+				auth.POST("/reset-password", s.authHandler.ResetPassword)
+				auth.GET("/verify-email", s.authHandler.VerifyEmail)
 			}
+
+			// Public package and timeslot routes
+			public.GET("/packages", s.bookingHandler.ListPackages)
+			public.GET("/packages/:id/addons", s.bookingHandler.GetPackageAddOns)
+			public.GET("/timeslots/available", s.bookingHandler.GetAvailableTimeslots)
 
 			// Webhook routes (with API key authentication)
 			webhooks := public.Group("/webhooks")
@@ -115,7 +154,7 @@ func (s *Server) setupRoutes() {
 				s.config.Stripe.WebhookSecret: "stripe",
 			}))
 			{
-				webhooks.POST("/stripe", s.placeholder("Stripe Webhook"))
+				webhooks.POST("/stripe", s.paymentHandler.StripeWebhook)
 			}
 		}
 
@@ -126,57 +165,66 @@ func (s *Server) setupRoutes() {
 			// Authentication routes for authenticated users
 			auth := protected.Group("/auth")
 			{
-				auth.POST("/logout", s.placeholder("Logout"))
-				auth.GET("/me", s.placeholder("Get Current User"))
-				auth.PUT("/me", s.placeholder("Update Current User"))
-				auth.POST("/change-password", s.placeholder("Change Password"))
+				auth.POST("/logout", s.authHandler.Logout)
+				auth.GET("/me", s.authHandler.GetMe)
+				auth.PUT("/me", s.authHandler.UpdateMe)
+				auth.POST("/change-password", s.authHandler.ChangePassword)
 			}
 
 			// User routes
 			users := protected.Group("/users")
 			{
-				users.GET("", middleware.RequireBeraterOrAdmin(), s.placeholder("List Users"))
-				users.GET("/:id", middleware.RequireOwnershipOrRole("user_id", "berater", "admin"), s.placeholder("Get User"))
-				users.PUT("/:id", middleware.RequireOwnershipOrRole("user_id", "admin"), s.placeholder("Update User"))
-				users.DELETE("/:id", middleware.RequireAdmin(), s.placeholder("Delete User"))
+				users.GET("", middleware.RequireBeraterOrAdmin(), s.userHandler.ListUsers)
+				users.GET("/:id", middleware.RequireOwnershipOrRole("user_id", "berater", "admin"), s.userHandler.GetUser)
+				users.PUT("/:id", middleware.RequireOwnershipOrRole("user_id", "admin"), s.userHandler.UpdateUser)
+				users.DELETE("/:id", middleware.RequireAdmin(), s.userHandler.DeleteUser)
 			}
 
 			// Lead routes
 			leads := protected.Group("/leads")
 			{
-				leads.GET("", s.placeholder("List Leads"))
-				leads.POST("", s.placeholder("Create Lead"))
-				leads.GET("/:id", s.placeholder("Get Lead"))
-				leads.PUT("/:id", s.placeholder("Update Lead"))
-				leads.DELETE("/:id", s.placeholder("Delete Lead"))
-				leads.PATCH("/:id/status", s.placeholder("Update Lead Status"))
-				leads.POST("/:id/assign", middleware.RequireBeraterOrAdmin(), s.placeholder("Assign Lead"))
+				leads.GET("", s.leadHandler.ListLeads)
+				leads.POST("", s.leadHandler.CreateLead)
+				leads.GET("/:id", s.leadHandler.GetLead)
+				leads.PUT("/:id", s.leadHandler.UpdateLead)
+				leads.DELETE("/:id", s.leadHandler.DeleteLead)
+				leads.PATCH("/:id/status", s.leadHandler.UpdateLeadStatus)
+				leads.POST("/:id/assign", middleware.RequireBeraterOrAdmin(), s.leadHandler.AssignLead)
 
 				// Lead comments
-				leads.GET("/:id/comments", s.placeholder("List Lead Comments"))
-				leads.POST("/:id/comments", s.placeholder("Create Lead Comment"))
+				leads.GET("/:id/comments", s.leadHandler.ListLeadComments)
+				leads.POST("/:id/comments", s.leadHandler.CreateLeadComment)
 				leads.PUT("/comments/:commentId", s.placeholder("Update Lead Comment"))
 				leads.DELETE("/comments/:commentId", s.placeholder("Delete Lead Comment"))
+			}
+
+			// Booking routes
+			bookings := protected.Group("/bookings")
+			{
+				bookings.GET("", s.bookingHandler.GetUserBookings)
+				bookings.POST("", s.bookingHandler.CreateBooking)
+				bookings.GET("/:id", s.bookingHandler.GetBooking)
+				bookings.PUT("/:id/contact-info", s.bookingHandler.UpdateBookingContactInfo)
 			}
 
 			// Document routes
 			documents := protected.Group("/documents")
 			{
-				documents.GET("", s.placeholder("List Documents"))
-				documents.POST("", s.placeholder("Upload Document"))
-				documents.GET("/:id", s.placeholder("Get Document"))
-				documents.PUT("/:id", s.placeholder("Update Document"))
-				documents.DELETE("/:id", s.placeholder("Delete Document"))
-				documents.GET("/:id/download", s.placeholder("Download Document"))
+				documents.GET("", s.documentHandler.ListDocuments)
+				documents.POST("", s.documentHandler.UploadDocument)
+				documents.GET("/:id", s.documentHandler.GetDocument)
+				documents.PUT("/:id", s.documentHandler.UpdateDocument)
+				documents.DELETE("/:id", s.documentHandler.DeleteDocument)
+				documents.GET("/:id/download", s.documentHandler.DownloadDocument)
 			}
 
 			// Payment routes
 			payments := protected.Group("/payments")
 			{
-				payments.GET("", s.placeholder("List Payments"))
-				payments.POST("/checkout", s.placeholder("Create Stripe Checkout"))
-				payments.GET("/:id", s.placeholder("Get Payment"))
-				payments.POST("/:id/refund", middleware.RequireBeraterOrAdmin(), s.placeholder("Refund Payment"))
+				payments.GET("", s.paymentHandler.ListPayments)
+				payments.POST("/checkout", s.paymentHandler.CreateCheckout)
+				payments.GET("/:id", s.paymentHandler.GetPayment)
+				payments.POST("/:id/refund", middleware.RequireBeraterOrAdmin(), s.paymentHandler.RefundPayment)
 			}
 
 			// Activity routes
@@ -191,13 +239,13 @@ func (s *Server) setupRoutes() {
 			admin.Use(middleware.RequireAdmin())
 			{
 				admin.GET("/stats", s.placeholder("Get Admin Stats"))
-				admin.GET("/users", s.placeholder("Admin List Users"))
-				admin.POST("/users", s.placeholder("Admin Create User"))
-				admin.PUT("/users/:id/role", s.placeholder("Admin Change User Role"))
-				admin.PUT("/users/:id/status", s.placeholder("Admin Change User Status"))
+				admin.GET("/users", s.userHandler.ListUsers)
+				admin.POST("/users", s.userHandler.AdminCreateUser)
+				admin.PUT("/users/:id/role", s.userHandler.AdminChangeUserRole)
+				admin.PUT("/users/:id/status", s.userHandler.AdminChangeUserStatus)
 
-				admin.GET("/leads", s.placeholder("Admin List Leads"))
-				admin.GET("/payments", s.placeholder("Admin List Payments"))
+				admin.GET("/leads", s.leadHandler.ListLeads)
+				admin.GET("/payments", s.paymentHandler.ListPayments)
 				admin.GET("/activities", s.placeholder("Admin List Activities"))
 				admin.GET("/system", s.placeholder("System Information"))
 			}
@@ -206,15 +254,15 @@ func (s *Server) setupRoutes() {
 			berater := protected.Group("/berater")
 			berater.Use(middleware.RequireBeraterOrAdmin())
 			{
-				berater.GET("/leads", s.placeholder("Berater List Assigned Leads"))
+				berater.GET("/leads", s.leadHandler.ListLeads)
 				berater.GET("/stats", s.placeholder("Berater Stats"))
 			}
 		}
 	}
 
 	// Payment result pages (public, for Stripe redirects)
-	s.Router.GET("/payment/success", s.placeholder("Payment Success Page"))
-	s.Router.GET("/payment/cancel", s.placeholder("Payment Cancel Page"))
+	s.Router.GET("/payment/success", s.paymentHandler.PaymentSuccessPage)
+	s.Router.GET("/payment/cancel", s.paymentHandler.PaymentCancelPage)
 
 	// Static file serving (for uploaded documents, only in development)
 	if s.config.IsDevelopment() && !s.config.S3.UseS3 {
