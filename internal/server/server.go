@@ -31,6 +31,8 @@ type Server struct {
 	bookingHandler  *handlers.BookingHandler
 	paymentHandler  *handlers.PaymentHandler
 	documentHandler *handlers.DocumentHandler
+	todoHandler     *handlers.TodoHandler
+	contactHandler  *handlers.ContactHandler
 }
 
 // New creates a new server instance
@@ -61,6 +63,8 @@ func New(cfg *config.Config, logger *zap.Logger) *Server {
 	bookingHandler := handlers.NewBookingHandler(db, logger)
 	paymentHandler := handlers.NewPaymentHandler(db, logger, cfg)
 	documentHandler := handlers.NewDocumentHandler(db, logger, cfg)
+	todoHandler := handlers.NewTodoHandler(db, logger)
+	contactHandler := handlers.NewContactHandler(db, logger)
 
 	server := &Server{
 		Router:          router,
@@ -74,6 +78,8 @@ func New(cfg *config.Config, logger *zap.Logger) *Server {
 		bookingHandler:  bookingHandler,
 		paymentHandler:  paymentHandler,
 		documentHandler: documentHandler,
+		todoHandler:     todoHandler,
+		contactHandler:  contactHandler,
 	}
 
 	// Setup middleware
@@ -147,6 +153,10 @@ func (s *Server) setupRoutes() {
 			public.GET("/packages", s.bookingHandler.ListPackages)
 			public.GET("/packages/:id/addons", s.bookingHandler.GetPackageAddOns)
 			public.GET("/timeslots/available", s.bookingHandler.GetAvailableTimeslots)
+
+			// Public contact routes
+			public.POST("/contact", s.contactHandler.SubmitContactForm)
+			public.POST("/contact/pre-talk", s.contactHandler.BookPreTalk)
 
 			// Webhook routes (with API key authentication)
 			webhooks := public.Group("/webhooks")
@@ -225,6 +235,24 @@ func (s *Server) setupRoutes() {
 				payments.POST("/checkout", s.paymentHandler.CreateCheckout)
 				payments.GET("/:id", s.paymentHandler.GetPayment)
 				payments.POST("/:id/refund", middleware.RequireBeraterOrAdmin(), s.paymentHandler.RefundPayment)
+			}
+
+			// Todo routes
+			todos := protected.Group("/todos")
+			{
+				todos.GET("", s.todoHandler.ListTodos)
+				todos.POST("", middleware.RequireBeraterOrAdmin(), s.todoHandler.CreateTodo)
+				todos.GET("/:id", s.todoHandler.GetTodo)
+				todos.PUT("/:id", s.todoHandler.UpdateTodo)
+				todos.PATCH("/:id/complete", s.todoHandler.CompleteTodo)
+				todos.DELETE("/:id", middleware.RequireBeraterOrAdmin(), s.todoHandler.DeleteTodo)
+			}
+
+			// Contact management routes (for beraters/admins)
+			contacts := protected.Group("/contact")
+			{
+				contacts.GET("/forms", middleware.RequireBeraterOrAdmin(), s.contactHandler.GetContactForms)
+				contacts.PATCH("/forms/:id/status", middleware.RequireBeraterOrAdmin(), s.contactHandler.UpdateContactFormStatus)
 			}
 
 			// Activity routes

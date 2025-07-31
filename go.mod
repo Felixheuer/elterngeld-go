@@ -10,6 +10,7 @@ require (
 	github.com/google/uuid v1.5.0
 	github.com/joho/godotenv v1.4.0
 	github.com/stretchr/testify v1.8.3
+	github.com/stripe/stripe-go/v76 v76.25.0
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
 	go.uber.org/zap v1.26.0
