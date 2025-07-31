@@ -59,9 +59,9 @@ func TestValidateAccessToken(t *testing.T) {
 	assert.Equal(t, user.ID, claims.UserID)
 	assert.Equal(t, user.Email, claims.Email)
 	assert.Equal(t, user.Role, claims.Role)
-	assert.Equal(t, "elterngeld-portal", claims.Issuer)
-	assert.Equal(t, user.ID.String(), claims.Subject)
-	assert.Contains(t, claims.Audience, "elterngeld-portal-api")
+	assert.Equal(t, "elterngeld-portal", claims.RegisteredClaims.Issuer)
+	assert.Equal(t, user.ID.String(), claims.RegisteredClaims.Subject)
+	assert.Contains(t, claims.RegisteredClaims.Audience, "elterngeld-portal-api")
 }
 
 func TestValidateAccessToken_InvalidToken(t *testing.T) {
