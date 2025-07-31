@@ -28,6 +28,8 @@ const (
 	LeadStatusCompleted      LeadStatus = "abgeschlossen"
 	LeadStatusCancelled      LeadStatus = "storniert"
 	LeadStatusPaymentPending LeadStatus = "zahlung_ausstehend"
+	LeadStatusQualified      LeadStatus = "qualifiziert"
+	LeadStatusUnqualified    LeadStatus = "nicht_qualifiziert"
 )
 
 type Priority string

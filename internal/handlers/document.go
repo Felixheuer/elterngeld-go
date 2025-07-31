@@ -204,20 +204,18 @@ func (h *DocumentHandler) UploadDocument(c *gin.Context) {
 
 	// Create document record
 	document := models.Document{
-		ID:           uuid.New(),
-		UserID:       userID.(uuid.UUID),
-		LeadID:       req.LeadID,
-		BookingID:    req.BookingID,
-		Filename:     fileHeader.Filename,
-		StoredName:   filename,
-		FilePath:     filePath,
-		FileSize:     fileHeader.Size,
-		MimeType:     fileHeader.Header.Get("Content-Type"),
-		Category:     req.Category,
-		IsPublic:     req.IsPublic,
-		Notes:        req.Notes,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		ID:            uuid.New(),
+		UserID:        userID.(uuid.UUID),
+		LeadID:        *req.LeadID,
+		FileName:      fileHeader.Filename,
+		OriginalName:  fileHeader.Filename,
+		FilePath:      filePath,
+		FileSize:      fileHeader.Size,
+		ContentType:   fileHeader.Header.Get("Content-Type"),
+		DocumentType:  models.DocumentTypeOther,
+		Description:   req.Notes,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
 
 	if err := h.db.Create(&document).Error; err != nil {
@@ -228,7 +226,7 @@ func (h *DocumentHandler) UploadDocument(c *gin.Context) {
 
 	h.logger.Info("Document uploaded successfully", 
 		zap.String("document_id", document.ID.String()),
-		zap.String("filename", document.Filename),
+		zap.String("filename", document.FileName),
 		zap.String("user_id", userID.(uuid.UUID).String()))
 
 	c.JSON(http.StatusCreated, document)
@@ -329,8 +327,8 @@ func (h *DocumentHandler) DownloadDocument(c *gin.Context) {
 	// Set headers for file download
 	c.Header("Content-Description", "File Transfer")
 	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Content-Disposition", "attachment; filename="+document.Filename)
-	c.Header("Content-Type", document.MimeType)
+	c.Header("Content-Disposition", "attachment; filename="+document.FileName)
+	c.Header("Content-Type", document.ContentType)
 
 	// Serve file
 	c.File(document.FilePath)
