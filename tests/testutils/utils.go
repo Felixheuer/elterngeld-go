@@ -55,6 +55,10 @@ func SetupTestContext(t *testing.T) *TestContext {
 			AccessExpiry:  15 * time.Minute,
 			RefreshExpiry: 7 * 24 * time.Hour,
 		},
+		RateLimit: config.RateLimitConfig{
+			Requests: 1000, // High limit for tests to avoid rate limiting
+			Window:   60,
+		},
 	}
 
 	// Initialize logger
