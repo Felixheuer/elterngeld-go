@@ -11,9 +11,10 @@ import (
 type UserRole string
 
 const (
-	RoleUser    UserRole = "user"
-	RoleBerater UserRole = "berater"
-	RoleAdmin   UserRole = "admin"
+	RoleUser         UserRole = "user"
+	RoleBerater      UserRole = "berater"
+	RoleJuniorBerater UserRole = "junior_berater"
+	RoleAdmin        UserRole = "admin"
 )
 
 // User represents a user in the system
@@ -24,7 +25,7 @@ type User struct {
 	FirstName string    `json:"first_name" gorm:"not null" validate:"required"`
 	LastName  string    `json:"last_name" gorm:"not null" validate:"required"`
 	Phone     string    `json:"phone" gorm:""`
-	Role      UserRole  `json:"role" gorm:"not null;default:'user'" validate:"required,oneof=user berater admin"`
+	Role      UserRole  `json:"role" gorm:"not null;default:'user'" validate:"required,oneof=user berater junior_berater admin"`
 	IsActive  bool      `json:"is_active" gorm:"not null;default:true"`
 
 	// Profile information
@@ -51,6 +52,27 @@ type User struct {
 	AssignedLeads []Lead         `json:"assigned_leads,omitempty" gorm:"foreignKey:BeraterID"`
 	Activities    []Activity     `json:"activities,omitempty" gorm:"foreignKey:UserID"`
 	RefreshTokens []RefreshToken `json:"-" gorm:"foreignKey:UserID"`
+	
+	// New relationships for booking system
+	Bookings      []Booking      `json:"bookings,omitempty" gorm:"foreignKey:UserID"`
+	BeraterBookings []Booking    `json:"berater_bookings,omitempty" gorm:"foreignKey:BeraterID"`
+	Timeslots     []Timeslot     `json:"timeslots,omitempty" gorm:"foreignKey:BeraterID"`
+	AssignedTodos []Todo         `json:"assigned_todos,omitempty" gorm:"foreignKey:UserID"`
+	CreatedTodos  []Todo         `json:"created_todos,omitempty" gorm:"foreignKey:CreatedBy"`
+	
+	// Notification relationships
+	Notifications []Notification `json:"notifications,omitempty" gorm:"foreignKey:UserID"`
+	EmailVerifications []EmailVerification `json:"-" gorm:"foreignKey:UserID"`
+	PasswordResets []PasswordReset `json:"-" gorm:"foreignKey:UserID"`
+	NotificationPreferences *NotificationPreference `json:"notification_preferences,omitempty" gorm:"foreignKey:UserID"`
+	
+	// Permission relationships
+	Roles         []Role         `json:"roles,omitempty" gorm:"many2many:user_roles;"`
+	UserPermissions []UserPermission `json:"user_permissions,omitempty" gorm:"foreignKey:UserID"`
+	
+	// Job relationships
+	CreatedJobs   []Job          `json:"created_jobs,omitempty" gorm:"foreignKey:CreatedBy"`
+	ReviewedApplications []JobApplication `json:"reviewed_applications,omitempty" gorm:"foreignKey:ReviewedBy"`
 }
 
 // RefreshToken represents a refresh token for JWT authentication
@@ -92,7 +114,7 @@ type CreateUserRequest struct {
 	FirstName string   `json:"first_name" validate:"required"`
 	LastName  string   `json:"last_name" validate:"required"`
 	Phone     string   `json:"phone"`
-	Role      UserRole `json:"role" validate:"omitempty,oneof=user berater admin"`
+	Role      UserRole `json:"role" validate:"omitempty,oneof=user berater junior_berater admin"`
 }
 
 // UpdateUserRequest represents the request body for updating a user
@@ -179,4 +201,9 @@ func (u *User) IsBerater() bool {
 // IsUser checks if the user has user role
 func (u *User) IsUser() bool {
 	return u.Role == RoleUser
+}
+
+// IsJuniorBerater checks if the user has junior_berater role
+func (u *User) IsJuniorBerater() bool {
+	return u.Role == RoleJuniorBerater
 }
