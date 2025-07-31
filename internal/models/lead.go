@@ -1,5 +1,14 @@
 package models
 
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
+
 // LeadPriority represents the priority level of a lead
 type LeadPriority string
 
@@ -8,15 +17,6 @@ const (
 	LeadPriorityMedium LeadPriority = "medium"
 	LeadPriorityHigh   LeadPriority = "high"
 	LeadPriorityCritical LeadPriority = "critical"
-)
-
-import (
-	"fmt"
-	"strings"
-	"time"
-
-	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type LeadStatus string

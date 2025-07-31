@@ -98,8 +98,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	accessToken, _ := h.jwtService.GenerateAccessToken(user.ID.String(), string(user.Role))
-	refreshToken, _ := h.jwtService.GenerateRefreshToken(user.ID.String())
+	accessToken, _ := h.jwtService.GenerateAccessToken(&user)
+	refreshToken, _ := h.jwtService.GenerateRefreshToken()
 
 	user.Password = ""
 	user.ResetToken = ""

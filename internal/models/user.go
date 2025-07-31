@@ -1,5 +1,13 @@
 package models
 
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
+)
+
 // UserStatus represents the status of a user account
 type UserStatus string
 
@@ -8,14 +16,6 @@ const (
 	UserStatusInactive  UserStatus = "inactive"
 	UserStatusPending   UserStatus = "pending"
 	UserStatusSuspended UserStatus = "suspended"
-)
-
-import (
-	"time"
-
-	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type UserRole string

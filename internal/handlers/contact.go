@@ -113,22 +113,14 @@ func (h *ContactHandler) SubmitContactForm(c *gin.Context) {
 	// Create contact form record
 	contactForm := models.ContactForm{
 		ID:               uuid.New(),
-		UserID:           userID,
 		Name:             req.Name,
 		Email:            req.Email,
 		Phone:            req.Phone,
-		Company:          req.Company,
 		Subject:          req.Subject,
 		Message:          req.Message,
-		PreferredDate:    req.PreferredDate,
-		UTMSource:        req.UTMSource,
-		UTMCampaign:      req.UTMCampaign,
-		UTMMedium:        req.UTMMedium,
-		UTMTerm:          req.UTMTerm,
-		UTMContent:       req.UTMContent,
-		PageURL:          req.PageURL,
-		Referrer:         req.Referrer,
-		Status:           models.ContactFormStatusNew,
+		UtmSource:        req.UTMSource,
+		UtmCampaign:      req.UTMCampaign,
+		UtmMedium:        req.UTMMedium,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}
@@ -149,7 +141,7 @@ func (h *ContactHandler) SubmitContactForm(c *gin.Context) {
 	if req.UTMSource != "" {
 		switch req.UTMSource {
 		case "google":
-			leadSource = models.LeadSourceGoogle
+			leadSource = models.LeadSourceWebsite
 		case "facebook":
 			leadSource = models.LeadSourceSocial
 		case "email":
@@ -161,22 +153,13 @@ func (h *ContactHandler) SubmitContactForm(c *gin.Context) {
 
 	lead := models.Lead{
 		ID:               uuid.New(),
-		UserID:           userID,
-		ContactFormID:    &contactForm.ID,
 		Source:           leadSource,
-		Status:           models.LeadStatusNew,
-		Priority:         models.LeadPriorityMedium,
+		Priority:         models.PriorityMedium,
 		Title:            leadTitle,
 		Description:      leadDescription,
-		CompanyName:      req.Company,
-		ContactEmail:     req.Email,
-		ContactPhone:     req.Phone,
-		UTMSource:        req.UTMSource,
-		UTMCampaign:      req.UTMCampaign,
-		UTMMedium:        req.UTMMedium,
-		UTMTerm:          req.UTMTerm,
-		UTMContent:       req.UTMContent,
-		FollowUpDate:     req.PreferredDate,
+		UtmSource:        req.UTMSource,
+		UtmCampaign:      req.UTMCampaign,
+		UtmMedium:        req.UTMMedium,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}
@@ -208,7 +191,6 @@ func (h *ContactHandler) SubmitContactForm(c *gin.Context) {
 
 	activity := models.Activity{
 		ID:          uuid.New(),
-		UserID:      activityUserID,
 		LeadID:      &lead.ID,
 		Type:        models.ActivityTypeLeadCreated,
 		Description: "Lead created from contact form submission",
@@ -299,7 +281,7 @@ func (h *ContactHandler) BookPreTalk(c *gin.Context) {
 	// Find free consultation package
 	var preTalkPackage models.Package
 	if err := tx.Where("type = ? AND name ILIKE ? AND price = ?", 
-		models.PackageTypeService, "%vorgespräch%", 0.0).First(&preTalkPackage).Error; err != nil {
+		"service", "%vorgespräch%", 0.0).First(&preTalkPackage).Error; err != nil {
 		// If no free package exists, create a placeholder
 		h.logger.Warn("No free consultation package found, using placeholder")
 	}
@@ -310,24 +292,18 @@ func (h *ContactHandler) BookPreTalk(c *gin.Context) {
 	// Create booking for pre-talk
 	booking := models.Booking{
 		ID:               uuid.New(),
-		UserID:           userID, // Can be nil for anonymous bookings
 		TimeslotID:       &req.TimeslotID,
 		BookingReference: bookingRef,
-		Status:           models.BookingStatusPending,
-		TotalPrice:       0.0, // Free consultation
+		TotalAmount:       0.0, // Free consultation
 		Currency:         "EUR",
-		BookingDate:      time.Now(),
-		ContactFirstName: req.Name,
-		ContactEmail:     req.Email,
-		ContactPhone:     req.Phone,
-		ContactCompleted: true,
-		Notes:            req.Message,
+		BookedAt:      time.Now(),
+		CustomerNotes:            req.Message,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}
 
-	if preTalkPackage.ID != uuid.Nil {
-		booking.PackageID = preTalkPackage.ID
+	if &preTalkPackage.ID != uuid.Nil {
+		booking.PackageID = &preTalkPackage.ID
 	}
 
 	if err := tx.Create(&booking).Error; err != nil {
@@ -346,18 +322,13 @@ func (h *ContactHandler) BookPreTalk(c *gin.Context) {
 
 	lead := models.Lead{
 		ID:          uuid.New(),
-		UserID:      userID,
-		BookingID:   &booking.ID,
 		Source:      models.LeadSourceWebsite,
-		Status:      models.LeadStatusNew,
-		Priority:    models.LeadPriorityHigh, // Pre-talks are high priority
+		Priority:    models.PriorityHigh, // Pre-talks are high priority
 		Title:       leadTitle,
 		Description: leadDescription,
-		ContactEmail: req.Email,
-		ContactPhone: req.Phone,
-		UTMSource:   req.UTMSource,
-		UTMCampaign: req.UTMCampaign,
-		UTMMedium:   req.UTMMedium,
+		UtmSource:   req.UTMSource,
+		UtmCampaign: req.UTMCampaign,
+		UtmMedium:   req.UTMMedium,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -388,7 +359,6 @@ func (h *ContactHandler) BookPreTalk(c *gin.Context) {
 
 	activity := models.Activity{
 		ID:          uuid.New(),
-		UserID:      activityUserID,
 		LeadID:      &lead.ID,
 		Type:        models.ActivityTypeBookingCreated,
 		Description: "Free consultation booking created",
