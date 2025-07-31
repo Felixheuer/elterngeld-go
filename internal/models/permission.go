@@ -145,8 +145,8 @@ type RolePermission struct {
 	Granter    User       `json:"granter,omitempty" gorm:"foreignKey:GrantedBy;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
-// UserRole represents user-role assignments
-type UserRole struct {
+// UserRoleAssignment represents user-role assignments
+type UserRoleAssignment struct {
 	UserID     uuid.UUID `json:"user_id" gorm:"type:char(36);primary_key"`
 	RoleID     uuid.UUID `json:"role_id" gorm:"type:char(36);primary_key"`
 	AssignedAt time.Time `json:"assigned_at" gorm:"not null"`
@@ -385,14 +385,14 @@ func (up *UserPermission) IsExpired() bool {
 	return time.Now().After(*up.ExpiresAt)
 }
 
-func (ur *UserRole) IsExpired() bool {
+func (ur *UserRoleAssignment) IsExpired() bool {
 	if ur.ExpiresAt == nil {
 		return false
 	}
 	return time.Now().After(*ur.ExpiresAt)
 }
 
-func (ur *UserRole) IsActiveAndValid() bool {
+func (ur *UserRoleAssignment) IsActiveAndValid() bool {
 	return ur.IsActive && !ur.IsExpired()
 }
 
@@ -458,7 +458,7 @@ func ParsePermissionName(name string) (PermissionResource, PermissionAction, err
 }
 
 // Common permission sets for easy role creation
-var DefaultPermissions = map[UserRole][]string{
+var DefaultPermissions = map[string][]string{
 	"user": {
 		"dashboard.user.read",
 		"profile.read",

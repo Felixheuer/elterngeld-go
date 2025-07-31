@@ -198,7 +198,7 @@ func (p *Payment) IsFailed() bool {
 
 // IsRefunded checks if the payment is refunded
 func (p *Payment) IsRefunded() bool {
-	return p.Status == PaymentStatusRefunded || p.RefundAmount > 0
+	return p.Status == PaymentStatusRefunded || p.RefundAmount >= p.Amount
 }
 
 // IsPending checks if the payment is pending

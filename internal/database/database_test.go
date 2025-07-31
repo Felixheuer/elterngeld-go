@@ -572,6 +572,10 @@ func setupTestDB(t *testing.T) {
 	err := Connect(cfg, logger)
 	require.NoError(t, err)
 	require.NotNil(t, DB)
+	
+	// Run auto-migration to create tables for tests
+	err = AutoMigrate()
+	require.NoError(t, err)
 }
 
 func cleanupTestDB(t *testing.T) {

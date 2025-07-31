@@ -226,7 +226,7 @@ func TestPaymentModel_StatusChecks(t *testing.T) {
 		{"succeeded", PaymentStatusSucceeded, 0, true, false, false, false, true},
 		{"failed", PaymentStatusFailed, 0, false, true, false, false, false},
 		{"refunded", PaymentStatusRefunded, 100, false, false, true, false, false},
-		{"succeeded_partial_refund", PaymentStatusSucceeded, 50, true, false, true, false, false},
+		{"succeeded_partial_refund", PaymentStatusSucceeded, 50, true, false, false, false, true},
 	}
 
 	for _, tt := range tests {
@@ -372,7 +372,8 @@ func TestLeadModel_GenerateApplicationNumber(t *testing.T) {
 
 	appNumber := lead.generateApplicationNumber()
 	assert.Contains(t, appNumber, "EG-")
-	assert.Contains(t, appNumber, "2024") // Current year
+	currentYear := time.Now().Format("2006")
+	assert.Contains(t, appNumber, currentYear) // Current year
 	assert.Greater(t, len(appNumber), 10)
 }
 
