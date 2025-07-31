@@ -1,0 +1,153 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: elterngeld_postgres
+    environment:
+      POSTGRES_DB: elterngeld_portal
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - elterngeld_network
+
+  # Redis for Caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: elterngeld_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - elterngeld_network
+
+  # Mailhog for Email Testing
+  mailhog:
+    image: mailhog/mailhog
+    container_name: elterngeld_mailhog
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+    networks:
+      - elterngeld_network
+
+  # Elterngeld Portal API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elterngeld_api
+    environment:
+      # Database Configuration
+      DB_DRIVER: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: elterngeld_portal
+      DB_SSLMODE: disable
+      
+      # Server Configuration
+      PORT: 8080
+      ENV: development
+      HOST: 0.0.0.0
+      
+      # JWT Configuration
+      JWT_SECRET: dev-super-secret-jwt-key-change-in-production
+      JWT_ACCESS_EXPIRY: 15m
+      JWT_REFRESH_EXPIRY: 168h
+      
+      # Email Configuration (Mailhog)
+      EMAIL_PROVIDER: smtp
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USER: ""
+      SMTP_PASSWORD: ""
+      EMAIL_FROM: noreply@elterngeld-portal.de
+      EMAIL_FROM_NAME: Elterngeld Portal
+      
+      # File Upload Configuration
+      UPLOAD_PATH: /app/storage/uploads
+      MAX_UPLOAD_SIZE: 10485760
+      ALLOWED_EXTENSIONS: .pdf,.png,.jpg,.jpeg
+      
+      # Development Configuration
+      AUTO_MIGRATE: true
+      SEED_DATA: true
+      
+      # Logging Configuration
+      LOG_LEVEL: debug
+      LOG_FORMAT: json
+      
+      # CORS Configuration
+      CORS_ORIGINS: http://localhost:3000,http://localhost:8080,http://localhost:8025
+      CORS_CREDENTIALS: true
+      
+      # Rate Limiting
+      RATE_LIMIT_REQUESTS: 100
+      RATE_LIMIT_WINDOW: 60
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./storage:/app/storage
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - elterngeld_network
+
+  # Nginx Reverse Proxy (optional, for production-like setup)
+  nginx:
+    image: nginx:alpine
+    container_name: elterngeld_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./storage:/var/www/storage:ro
+    depends_on:
+      - api
+    networks:
+      - elterngeld_network
+    profiles:
+      - production
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  elterngeld_network:
+    driver: bridge
