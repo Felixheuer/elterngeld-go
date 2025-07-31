@@ -241,7 +241,7 @@ func TestRequireOwnershipOrRole(t *testing.T) {
 		c.Request = httptest.NewRequest("GET", "/test", nil)
 		c.Set("user_id", userID)
 		c.Set("user_role", models.RoleUser)
-		c.Set("user_id", userID) // Resource belongs to this user
+		c.Params = gin.Params{{Key: "user_id", Value: userID.String()}} // Resource belongs to this user
 
 		middleware(c)
 
@@ -254,7 +254,7 @@ func TestRequireOwnershipOrRole(t *testing.T) {
 		c.Request = httptest.NewRequest("GET", "/test", nil)
 		c.Set("user_id", userID)
 		c.Set("user_role", models.RoleAdmin)
-		c.Set("user_id", otherUserID) // Resource belongs to other user
+		c.Params = gin.Params{{Key: "user_id", Value: otherUserID.String()}} // Resource belongs to other user
 
 		middleware(c)
 
@@ -267,7 +267,7 @@ func TestRequireOwnershipOrRole(t *testing.T) {
 		c.Request = httptest.NewRequest("GET", "/test", nil)
 		c.Set("user_id", userID)
 		c.Set("user_role", models.RoleUser)
-		c.Set("user_id", otherUserID) // Resource belongs to other user
+		c.Params = gin.Params{{Key: "user_id", Value: otherUserID.String()}} // Resource belongs to other user
 
 		middleware(c)
 

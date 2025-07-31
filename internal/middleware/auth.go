@@ -172,9 +172,10 @@ func RequireOwnershipOrRole(resourceUserIDKey string, roles ...models.UserRole) 
 		}
 
 		// Check ownership
-		resourceUserID, exists := c.Get(resourceUserIDKey)
-		if exists {
-			if resourceID, ok := resourceUserID.(uuid.UUID); ok && resourceID == currentUserID {
+		resourceUserIDStr := c.Param(resourceUserIDKey)
+		if resourceUserIDStr != "" {
+			resourceID, err := uuid.Parse(resourceUserIDStr)
+			if err == nil && resourceID == currentUserID {
 				c.Next()
 				return
 			}

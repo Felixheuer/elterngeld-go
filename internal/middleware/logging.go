@@ -3,6 +3,7 @@ package middleware
 import (
 	"bytes"
 	"io"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -249,9 +250,9 @@ func RateLimitMiddleware(rateLimiter *RateLimitInfo, logger *zap.Logger) gin.Han
 				zap.Duration("window", rateLimiter.window),
 			)
 
-			c.Header("X-RateLimit-Limit", string(rune(rateLimiter.maxReqs)))
+			c.Header("X-RateLimit-Limit", strconv.Itoa(rateLimiter.maxReqs))
 			c.Header("X-RateLimit-Remaining", "0")
-			c.Header("X-RateLimit-Reset", string(rune(now.Add(rateLimiter.window).Unix())))
+			c.Header("X-RateLimit-Reset", strconv.FormatInt(now.Add(rateLimiter.window).Unix(), 10))
 
 			c.JSON(429, gin.H{
 				"error": "Rate limit exceeded",
@@ -266,9 +267,9 @@ func RateLimitMiddleware(rateLimiter *RateLimitInfo, logger *zap.Logger) gin.Han
 
 		// Set rate limit headers
 		remaining := rateLimiter.maxReqs - len(rateLimiter.requests[clientIP])
-		c.Header("X-RateLimit-Limit", string(rune(rateLimiter.maxReqs)))
-		c.Header("X-RateLimit-Remaining", string(rune(remaining)))
-		c.Header("X-RateLimit-Reset", string(rune(now.Add(rateLimiter.window).Unix())))
+		c.Header("X-RateLimit-Limit", strconv.Itoa(rateLimiter.maxReqs))
+		c.Header("X-RateLimit-Remaining", strconv.Itoa(remaining))
+		c.Header("X-RateLimit-Reset", strconv.FormatInt(now.Add(rateLimiter.window).Unix(), 10))
 
 		c.Next()
 	}
