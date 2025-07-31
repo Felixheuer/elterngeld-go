@@ -84,7 +84,9 @@ func (s *Server) setupMiddleware() {
 func (s *Server) setupRoutes() {
 	// Health check endpoint
 	s.Router.GET("/health", s.healthCheck)
+	s.Router.HEAD("/health", s.healthCheck) // Support HEAD requests for health checks
 	s.Router.GET("/ready", s.readinessCheck)
+	s.Router.HEAD("/ready", s.readinessCheck) // Support HEAD requests for readiness checks
 
 	// Swagger documentation
 	if s.config.IsDevelopment() {
