@@ -1,7 +1,13 @@
 package handlers
 
 import (
+	"encoding/json"
+	"encoding/json"
+	"encoding/json"
+	"strconv"
+	"strconv"
 	"net/http"
+	"strconv"
 	"time"
 
 	"elterngeld-portal/internal/models"
@@ -16,7 +22,6 @@ type ContactHandler struct {
 	db     *gorm.DB
 	logger *zap.Logger
 }
-
 func NewContactHandler(db *gorm.DB, logger *zap.Logger) *ContactHandler {
 	return &ContactHandler{
 		db:     db,
@@ -45,7 +50,6 @@ type ContactFormRequest struct {
 	PageURL      string `json:"page_url,omitempty"`
 	Referrer     string `json:"referrer,omitempty"`
 }
-
 // PreTalkBookingRequest represents a free 15-min consultation booking
 type PreTalkBookingRequest struct {
 	Name         string     `json:"name" binding:"required"`
@@ -59,7 +63,6 @@ type PreTalkBookingRequest struct {
 	UTMCampaign  string `json:"utm_campaign,omitempty"`
 	UTMMedium    string `json:"utm_medium,omitempty"`
 }
-
 // SubmitContactForm handles contact form submissions
 // @Summary Submit contact form
 // @Description Submit a contact form (creates a lead automatically)
@@ -77,7 +80,6 @@ func (h *ContactHandler) SubmitContactForm(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data", "details": err.Error()})
 		return
 	}
-
 	// Check if user is authenticated
 	var userID *uuid.UUID
 	if rawUserID, exists := c.Get("user_id"); exists {
@@ -96,12 +98,10 @@ func (h *ContactHandler) SubmitContactForm(c *gin.Context) {
 		h.logger.Warn("Authenticated user not found in database", zap.String("user_id", userID.String()))
 		userID = nil
 	}
-
 	// If user exists but we're not authenticated, use existing user
 	if userExists && userID == nil {
 		userID = &existingUser.ID
 	}
-
 	// Start database transaction
 	tx := h.db.Begin()
 	defer func() {
@@ -113,33 +113,23 @@ func (h *ContactHandler) SubmitContactForm(c *gin.Context) {
 	// Create contact form record
 	contactForm := models.ContactForm{
 		ID:               uuid.New(),
-		UserID:           userID,
 		Name:             req.Name,
 		Email:            req.Email,
 		Phone:            req.Phone,
-		Company:          req.Company,
 		Subject:          req.Subject,
 		Message:          req.Message,
-		PreferredDate:    req.PreferredDate,
-		UTMSource:        req.UTMSource,
-		UTMCampaign:      req.UTMCampaign,
-		UTMMedium:        req.UTMMedium,
-		UTMTerm:          req.UTMTerm,
-		UTMContent:       req.UTMContent,
-		PageURL:          req.PageURL,
-		Referrer:         req.Referrer,
-		Status:           models.ContactFormStatusNew,
+		UtmSource:        req.UTMSource,
+		UtmCampaign:      req.UTMCampaign,
+		UtmMedium:        req.UTMMedium,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}
-
 	if err := tx.Create(&contactForm).Error; err != nil {
 		tx.Rollback()
 		h.logger.Error("Failed to create contact form", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save contact form"})
 		return
 	}
-
 	// Create associated lead
 	leadTitle := "Contact Form: " + req.Subject
 	leadDescription := "Contact form submission from " + req.Name + "\n\n" + req.Message
@@ -149,7 +139,7 @@ func (h *ContactHandler) SubmitContactForm(c *gin.Context) {
 	if req.UTMSource != "" {
 		switch req.UTMSource {
 		case "google":
-			leadSource = models.LeadSourceGoogle
+			leadSource = models.LeadSourceWebsite
 		case "facebook":
 			leadSource = models.LeadSourceSocial
 		case "email":
@@ -161,33 +151,22 @@ func (h *ContactHandler) SubmitContactForm(c *gin.Context) {
 
 	lead := models.Lead{
 		ID:               uuid.New(),
-		UserID:           userID,
-		ContactFormID:    &contactForm.ID,
 		Source:           leadSource,
-		Status:           models.LeadStatusNew,
-		Priority:         models.LeadPriorityMedium,
+		Priority:         models.PriorityMedium,
 		Title:            leadTitle,
 		Description:      leadDescription,
-		CompanyName:      req.Company,
-		ContactEmail:     req.Email,
-		ContactPhone:     req.Phone,
-		UTMSource:        req.UTMSource,
-		UTMCampaign:      req.UTMCampaign,
-		UTMMedium:        req.UTMMedium,
-		UTMTerm:          req.UTMTerm,
-		UTMContent:       req.UTMContent,
-		FollowUpDate:     req.PreferredDate,
+		UtmSource:        req.UTMSource,
+		UtmCampaign:      req.UTMCampaign,
+		UtmMedium:        req.UTMMedium,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}
-
 	if err := tx.Create(&lead).Error; err != nil {
 		tx.Rollback()
 		h.logger.Error("Failed to create lead from contact form", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process contact form"})
 		return
 	}
-
 	// Update contact form with lead ID
 	contactForm.LeadID = &lead.ID
 	if err := tx.Save(&contactForm).Error; err != nil {
@@ -196,7 +175,6 @@ func (h *ContactHandler) SubmitContactForm(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process contact form"})
 		return
 	}
-
 	// Create activity log
 	var activityUserID uuid.UUID
 	if userID != nil {
@@ -205,14 +183,12 @@ func (h *ContactHandler) SubmitContactForm(c *gin.Context) {
 		// Create a system activity for anonymous submissions
 		activityUserID = uuid.New() // This should be a system user ID in production
 	}
-
 	activity := models.Activity{
 		ID:          uuid.New(),
-		UserID:      activityUserID,
 		LeadID:      &lead.ID,
 		Type:        models.ActivityTypeLeadCreated,
 		Description: "Lead created from contact form submission",
-		Metadata:    "Contact form ID: " + contactForm.ID.String(),
+		Metadata:    json.RawMessage("{\"contact_form_id\": \"" + contactForm.ID.String() + "\"}"),
 		CreatedAt:   time.Now(),
 	}
 	tx.Create(&activity)
@@ -223,7 +199,6 @@ func (h *ContactHandler) SubmitContactForm(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process contact form"})
 		return
 	}
-
 	h.logger.Info("Contact form submitted successfully", 
 		zap.String("contact_form_id", contactForm.ID.String()),
 		zap.String("lead_id", lead.ID.String()),
@@ -239,7 +214,6 @@ func (h *ContactHandler) SubmitContactForm(c *gin.Context) {
 		"reference_number": "CF-" + contactForm.ID.String()[:8],
 	})
 }
-
 // BookPreTalk handles free 15-minute consultation booking
 // @Summary Book free consultation
 // @Description Book a free 15-minute consultation (for specific packages)
@@ -257,7 +231,6 @@ func (h *ContactHandler) BookPreTalk(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data", "details": err.Error()})
 		return
 	}
-
 	// Check if user is authenticated
 	var userID *uuid.UUID
 	if rawUserID, exists := c.Get("user_id"); exists {
@@ -277,7 +250,6 @@ func (h *ContactHandler) BookPreTalk(c *gin.Context) {
 		}
 		return
 	}
-
 	// Check if timeslot is still available (not overbooked)
 	var bookingCount int64
 	h.db.Model(&models.Booking{}).Where("timeslot_id = ? AND status NOT IN (?)", 
@@ -287,7 +259,6 @@ func (h *ContactHandler) BookPreTalk(c *gin.Context) {
 		c.JSON(http.StatusConflict, gin.H{"error": "Timeslot is no longer available"})
 		return
 	}
-
 	// Start transaction
 	tx := h.db.Begin()
 	defer func() {
@@ -299,76 +270,58 @@ func (h *ContactHandler) BookPreTalk(c *gin.Context) {
 	// Find free consultation package
 	var preTalkPackage models.Package
 	if err := tx.Where("type = ? AND name ILIKE ? AND price = ?", 
-		models.PackageTypeService, "%vorgespräch%", 0.0).First(&preTalkPackage).Error; err != nil {
+		"service", "%vorgespräch%", 0.0).First(&preTalkPackage).Error; err != nil {
 		// If no free package exists, create a placeholder
 		h.logger.Warn("No free consultation package found, using placeholder")
 	}
-
 	// Generate booking reference
 	bookingRef := "PT" + time.Now().Format("20060102") + "-" + uuid.New().String()[:8]
 
 	// Create booking for pre-talk
 	booking := models.Booking{
 		ID:               uuid.New(),
-		UserID:           userID, // Can be nil for anonymous bookings
 		TimeslotID:       &req.TimeslotID,
 		BookingReference: bookingRef,
-		Status:           models.BookingStatusPending,
-		TotalPrice:       0.0, // Free consultation
+		TotalAmount:       0.0, // Free consultation
 		Currency:         "EUR",
-		BookingDate:      time.Now(),
-		ContactFirstName: req.Name,
-		ContactEmail:     req.Email,
-		ContactPhone:     req.Phone,
-		ContactCompleted: true,
-		Notes:            req.Message,
+		BookedAt:      time.Now(),
+		CustomerNotes:            req.Message,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}
-
 	if preTalkPackage.ID != uuid.Nil {
-		booking.PackageID = preTalkPackage.ID
+		booking.PackageID = &preTalkPackage.ID
 	}
-
 	if err := tx.Create(&booking).Error; err != nil {
 		tx.Rollback()
 		h.logger.Error("Failed to create pre-talk booking", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create booking"})
 		return
 	}
-
 	// Create associated lead
 	leadTitle := "Free Consultation: " + req.Name
 	leadDescription := "Free 15-minute consultation booking"
 	if req.Message != "" {
 		leadDescription += "\n\nMessage: " + req.Message
 	}
-
 	lead := models.Lead{
 		ID:          uuid.New(),
-		UserID:      userID,
-		BookingID:   &booking.ID,
 		Source:      models.LeadSourceWebsite,
-		Status:      models.LeadStatusNew,
-		Priority:    models.LeadPriorityHigh, // Pre-talks are high priority
+		Priority:    models.PriorityHigh, // Pre-talks are high priority
 		Title:       leadTitle,
 		Description: leadDescription,
-		ContactEmail: req.Email,
-		ContactPhone: req.Phone,
-		UTMSource:   req.UTMSource,
-		UTMCampaign: req.UTMCampaign,
-		UTMMedium:   req.UTMMedium,
+		UtmSource:   req.UTMSource,
+		UtmCampaign: req.UTMCampaign,
+		UtmMedium:   req.UTMMedium,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
-
 	if err := tx.Create(&lead).Error; err != nil {
 		tx.Rollback()
 		h.logger.Error("Failed to create lead from pre-talk booking", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process booking"})
 		return
 	}
-
 	// Update booking with lead ID
 	booking.LeadID = &lead.ID
 	if err := tx.Save(&booking).Error; err != nil {
@@ -377,7 +330,6 @@ func (h *ContactHandler) BookPreTalk(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process booking"})
 		return
 	}
-
 	// Create activity log
 	var activityUserID uuid.UUID
 	if userID != nil {
@@ -385,14 +337,12 @@ func (h *ContactHandler) BookPreTalk(c *gin.Context) {
 	} else {
 		activityUserID = uuid.New() // System user for anonymous bookings
 	}
-
 	activity := models.Activity{
 		ID:          uuid.New(),
-		UserID:      activityUserID,
 		LeadID:      &lead.ID,
 		Type:        models.ActivityTypeBookingCreated,
 		Description: "Free consultation booking created",
-		Metadata:    "Booking ref: " + booking.BookingReference,
+		Metadata:    json.RawMessage("{\"booking_reference\": \"" + booking.BookingReference + "\"}"),
 		CreatedAt:   time.Now(),
 	}
 	tx.Create(&activity)
@@ -403,7 +353,6 @@ func (h *ContactHandler) BookPreTalk(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process booking"})
 		return
 	}
-
 	h.logger.Info("Free consultation booked successfully", 
 		zap.String("booking_id", booking.ID.String()),
 		zap.String("lead_id", lead.ID.String()),
@@ -421,7 +370,6 @@ func (h *ContactHandler) BookPreTalk(c *gin.Context) {
 		"timeslot":          timeslot,
 	})
 }
-
 // GetContactForms handles listing contact forms (Admin/Berater only)
 // @Summary List contact forms
 // @Description Get list of contact form submissions
@@ -441,13 +389,11 @@ func (h *ContactHandler) GetContactForms(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
-
 	// Only beraters and admins can view contact forms
 	if userRole != "berater" && userRole != "junior_berater" && userRole != "admin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
 		return
 	}
-
 	// Parse pagination
 	page := 1
 	limit := 20
@@ -470,7 +416,6 @@ func (h *ContactHandler) GetContactForms(c *gin.Context) {
 	if status != "" {
 		query = query.Where("status = ?", status)
 	}
-
 	// Get total count
 	var total int64
 	query.Count(&total)
@@ -483,7 +428,6 @@ func (h *ContactHandler) GetContactForms(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch contact forms"})
 		return
 	}
-
 	c.JSON(http.StatusOK, gin.H{
 		"contact_forms": contactForms,
 		"pagination": gin.H{
@@ -494,7 +438,6 @@ func (h *ContactHandler) GetContactForms(c *gin.Context) {
 		},
 	})
 }
-
 // UpdateContactFormStatus handles updating contact form status
 // @Summary Update contact form status
 // @Description Update the status of a contact form submission
@@ -516,13 +459,11 @@ func (h *ContactHandler) UpdateContactFormStatus(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
-
 	// Only beraters and admins can update contact form status
 	if userRole != "berater" && userRole != "junior_berater" && userRole != "admin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
 		return
 	}
-
 	contactFormID := c.Param("id")
 
 	var contactForm models.ContactForm
@@ -535,25 +476,21 @@ func (h *ContactHandler) UpdateContactFormStatus(c *gin.Context) {
 		}
 		return
 	}
-
 	var req map[string]interface{}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
 	}
-
 	newStatus, exists := req["status"]
 	if !exists {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Status is required"})
 		return
 	}
-
 	statusStr, ok := newStatus.(string)
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status format"})
 		return
 	}
-
 	// Validate status
 	validStatuses := []string{"new", "in_progress", "responded", "closed"}
 	isValid := false
@@ -568,23 +505,16 @@ func (h *ContactHandler) UpdateContactFormStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid status"})
 		return
 	}
-
 	// Update status
-	contactForm.Status = statusStr
 	contactForm.UpdatedAt = time.Now()
 
 	// Set response timestamp if marking as responded
-	if statusStr == "responded" && contactForm.RespondedAt == nil {
-		now := time.Now()
-		contactForm.RespondedAt = &now
 	}
-
 	if err := h.db.Save(&contactForm).Error; err != nil {
 		h.logger.Error("Failed to update contact form status", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update status"})
 		return
 	}
-
 	h.logger.Info("Contact form status updated", 
 		zap.String("contact_form_id", contactFormID),
 		zap.String("new_status", statusStr))

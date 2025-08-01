@@ -9,6 +9,16 @@ import (
 	"gorm.io/gorm"
 )
 
+// LeadPriority represents the priority level of a lead
+type LeadPriority string
+
+const (
+	LeadPriorityLow    LeadPriority = "low"
+	LeadPriorityMedium LeadPriority = "medium"
+	LeadPriorityHigh   LeadPriority = "high"
+	LeadPriorityCritical LeadPriority = "critical"
+)
+
 type LeadStatus string
 
 const (
@@ -18,6 +28,8 @@ const (
 	LeadStatusCompleted      LeadStatus = "abgeschlossen"
 	LeadStatusCancelled      LeadStatus = "storniert"
 	LeadStatusPaymentPending LeadStatus = "zahlung_ausstehend"
+	LeadStatusQualified      LeadStatus = "qualifiziert"
+	LeadStatusUnqualified    LeadStatus = "nicht_qualifiziert"
 )
 
 type Priority string

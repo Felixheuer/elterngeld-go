@@ -8,6 +8,16 @@ import (
 	"gorm.io/gorm"
 )
 
+// UserStatus represents the status of a user account
+type UserStatus string
+
+const (
+	UserStatusActive    UserStatus = "active"
+	UserStatusInactive  UserStatus = "inactive"
+	UserStatusPending   UserStatus = "pending"
+	UserStatusSuspended UserStatus = "suspended"
+)
+
 type UserRole string
 
 const (

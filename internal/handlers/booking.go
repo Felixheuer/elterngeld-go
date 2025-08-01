@@ -69,7 +69,7 @@ type BookingResponse struct {
 // @Router /api/v1/packages [get]
 func (h *BookingHandler) ListPackages(c *gin.Context) {
 	var packages []models.Package
-	if err := h.db.Where("type = ? AND is_active = ?", models.PackageTypeService, true).
+	if err := h.db.Where("category = ? AND is_active = ?", "service", true).
 		Order("sort_order ASC, price ASC").Find(&packages).Error; err != nil {
 		h.logger.Error("Failed to fetch packages", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch packages"})
@@ -95,7 +95,7 @@ func (h *BookingHandler) GetPackageAddOns(c *gin.Context) {
 
 	// Verify package exists
 	var servicePackage models.Package
-	if err := h.db.Where("id = ? AND type = ?", packageID, models.PackageTypeService).First(&servicePackage).Error; err != nil {
+	if err := h.db.Where("id = ? AND type = ?", packageID, "service").First(&servicePackage).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Package not found"})
 		} else {
@@ -107,7 +107,7 @@ func (h *BookingHandler) GetPackageAddOns(c *gin.Context) {
 
 	// Get add-ons
 	var addOns []models.Package
-	if err := h.db.Where("type = ? AND is_active = ?", models.PackageTypeAddOn, true).
+	if err := h.db.Where("type = ? AND is_active = ?", "addon", true).
 		Order("sort_order ASC, price ASC").Find(&addOns).Error; err != nil {
 		h.logger.Error("Failed to fetch add-ons", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch add-ons"})
@@ -245,7 +245,7 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 
 	// Verify package exists
 	var servicePackage models.Package
-	if err := tx.Where("id = ? AND type = ?", req.PackageID, models.PackageTypeService).First(&servicePackage).Error; err != nil {
+	if err := tx.Where("id = ? AND type = ?", req.PackageID, "service").First(&servicePackage).Error; err != nil {
 		tx.Rollback()
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Package not found"})
@@ -260,7 +260,7 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	var addOns []models.Package
 	totalPrice := servicePackage.Price
 	if len(req.AddOnIDs) > 0 {
-		if err := tx.Where("id IN ? AND type = ?", req.AddOnIDs, models.PackageTypeAddOn).Find(&addOns).Error; err != nil {
+		if err := tx.Where("id IN ? AND type = ?", req.AddOnIDs, "addon").Find(&addOns).Error; err != nil {
 			tx.Rollback()
 			h.logger.Error("Failed to fetch add-ons", zap.Error(err))
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch add-ons"})
@@ -317,15 +317,14 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	booking := models.Booking{
 		ID:               uuid.New(),
 		UserID:           userID.(uuid.UUID),
-		PackageID:        req.PackageID,
+		PackageID:        &req.PackageID,
 		TimeslotID:       req.TimeslotID,
 		BookingReference: bookingRef,
 		Status:           models.BookingStatusPending,
-		TotalPrice:       totalPrice,
+		TotalAmount:       totalPrice,
 		Currency:         "EUR",
-		BookingDate:      time.Now(),
-		PreferredDate:    req.PreferredDate,
-		Notes:            req.Notes,
+		BookedAt:      time.Now(),
+		CustomerNotes:            req.Notes,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),
 	}
@@ -339,10 +338,9 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 
 	// Create booking add-ons
 	for _, addOn := range addOns {
-		bookingAddOn := models.BookingAddOn{
-			ID:        uuid.New(),
-			BookingID: booking.ID,
-			PackageID: addOn.ID,
+		bookingAddOn := models.BookingAddon{
+			BookingID:        booking.ID,
+			AddonID: addOn.ID,
 			Price:     addOn.Price,
 			CreatedAt: time.Now(),
 		}
@@ -357,12 +355,11 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	// Create associated lead
 	lead := models.Lead{
 		ID:           uuid.New(),
-		UserID:       &userID.(uuid.UUID),
-		BookingID:    &booking.ID,
+		UserID:       userID.(uuid.UUID),
 		Source:       models.LeadSourceBooking,
 		Status:       models.LeadStatusNew,
-		Priority:     models.LeadPriorityMedium,
-		EstimatedValue: &totalPrice,
+		Priority:     models.PriorityMedium,
+		EstimatedValue: totalPrice,
 		Title:        "Booking: " + servicePackage.Name,
 		Description:  "New booking created for " + servicePackage.Name,
 		CreatedAt:    time.Now(),
@@ -519,8 +516,8 @@ func (h *BookingHandler) GetBooking(c *gin.Context) {
 		AddOns:    addOns,
 		Timeslot:  booking.Timeslot,
 		Lead:      booking.Lead,
-		Payments:  booking.Payments,
-		Documents: booking.Documents,
+		Payments:  nil,
+		Documents: nil,
 	}
 
 	c.JSON(http.StatusOK, response)

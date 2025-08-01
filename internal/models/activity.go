@@ -27,6 +27,8 @@ const (
 	ActivityTypeUserLogout        ActivityType = "user_logout"
 	ActivityTypePasswordChanged   ActivityType = "password_changed"
 	ActivityTypeEmailSent         ActivityType = "email_sent"
+	ActivityTypeBookingCreated    ActivityType = "booking_created"
+	ActivityTypeLeadDeleted       ActivityType = "lead_deleted"
 	ActivityTypeSystem            ActivityType = "system"
 )
 

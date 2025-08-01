@@ -210,28 +210,35 @@ func (h *LeadHandler) CreateLead(c *gin.Context) {
 	}
 
 	// Set default priority if not provided
-	priority := req.Priority
-	if priority == "" {
-		priority = models.LeadPriorityMedium
+	priority := models.PriorityMedium
+	if req.Priority != "" {
+		// Convert LeadPriority to Priority
+		switch req.Priority {
+		case models.LeadPriorityLow:
+			priority = models.PriorityLow
+		case models.LeadPriorityMedium:
+			priority = models.PriorityMedium
+		case models.LeadPriorityHigh:
+			priority = models.PriorityHigh
+		case models.LeadPriorityCritical:
+			priority = models.PriorityUrgent
+		}
 	}
 
 	// Create lead
 	lead := models.Lead{
 		ID:             uuid.New(),
-		UserID:         &userID.(uuid.UUID),
+		UserID:         userID.(uuid.UUID),
 		Source:         req.Source,
 		Status:         models.LeadStatusNew,
-		Priority:       priority,
+		Priority:       models.PriorityMedium,
 		Title:          req.Title,
 		Description:    req.Description,
-		EstimatedValue: req.EstimatedValue,
-		CompanyName:    req.CompanyName,
-		ContactEmail:   req.ContactEmail,
-		ContactPhone:   req.ContactPhone,
-		UTMSource:      req.UTMSource,
-		UTMCampaign:    req.UTMCampaign,
-		UTMMedium:      req.UTMMedium,
-		Notes:          req.Notes,
+		EstimatedValue: *req.EstimatedValue,
+		UtmSource:      req.UTMSource,
+		UtmCampaign:    req.UTMCampaign,
+		UtmMedium:      req.UTMMedium,
+		InternalNotes:          req.Notes,
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	}
@@ -245,7 +252,7 @@ func (h *LeadHandler) CreateLead(c *gin.Context) {
 	// Create activity log
 	activity := models.Activity{
 		ID:           uuid.New(),
-		UserID:       userID.(uuid.UUID),
+		UserID:       &userID.(uuid.UUID),
 		LeadID:       &lead.ID,
 		Type:         models.ActivityTypeLeadCreated,
 		Description:  "Lead created: " + lead.Title,
@@ -319,8 +326,6 @@ func (h *LeadHandler) GetLead(c *gin.Context) {
 	response := &LeadResponse{
 		Lead:       &lead,
 		User:       lead.User,
-		AssignedTo: lead.AssignedTo,
-		Booking:    lead.Booking,
 		Activities: lead.Activities,
 		Comments:   comments,
 		Todos:      todos,

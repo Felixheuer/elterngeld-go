@@ -50,13 +50,13 @@ func NewJWTService(cfg *config.Config) *JWTService {
 // GenerateTokenPair generates access and refresh tokens for a user
 func (js *JWTService) GenerateTokenPair(user *models.User) (*TokenPair, error) {
 	// Generate access token
-	accessToken, err := js.generateAccessToken(user)
+	accessToken, err := js.GenerateAccessToken(user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
 	// Generate refresh token
-	refreshToken, err := js.generateRefreshToken()
+	refreshToken, err := js.GenerateRefreshToken()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
@@ -69,8 +69,8 @@ func (js *JWTService) GenerateTokenPair(user *models.User) (*TokenPair, error) {
 	}, nil
 }
 
-// generateAccessToken generates a JWT access token
-func (js *JWTService) generateAccessToken(user *models.User) (string, error) {
+// GenerateAccessToken generates a JWT access token
+func (js *JWTService) GenerateAccessToken(user *models.User) (string, error) {
 	now := time.Now()
 	claims := &Claims{
 		UserID: user.ID,
@@ -91,8 +91,8 @@ func (js *JWTService) generateAccessToken(user *models.User) (string, error) {
 	return token.SignedString(js.secretKey)
 }
 
-// generateRefreshToken generates a random refresh token
-func (js *JWTService) generateRefreshToken() (string, error) {
+// GenerateRefreshToken generates a random refresh token
+func (js *JWTService) GenerateRefreshToken() (string, error) {
 	bytes := make([]byte, 32)
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err
@@ -294,4 +294,9 @@ func (js *JWTService) BlacklistToken(tokenString string) error {
 
 	GlobalTokenBlacklist.Add(claims.RegisteredClaims.ID, claims.RegisteredClaims.ExpiresAt.Time)
 	return nil
+}
+
+// GetAccessTokenExpiry returns the access token expiry duration
+func (js *JWTService) GetAccessTokenExpiry() time.Duration {
+	return js.accessTTL
 }

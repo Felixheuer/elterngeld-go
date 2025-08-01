@@ -8,6 +8,24 @@ import (
 	"gorm.io/gorm"
 )
 
+// PackageTypeService represents a service-based package type
+type PackageTypeService string
+
+const (
+	PackageTypeServiceConsultation PackageTypeService = "consultation"
+	PackageTypeServiceApplication  PackageTypeService = "application"
+	PackageTypeServiceReview      PackageTypeService = "review"
+)
+
+// PackageTypeAddOn represents an add-on package type
+type PackageTypeAddOn string
+
+const (
+	PackageTypeAddOnDocument   PackageTypeAddOn = "document"
+	PackageTypeAddOnTranslation PackageTypeAddOn = "translation"
+	PackageTypeAddOnSupport    PackageTypeAddOn = "support"
+)
+
 type PackageType string
 
 const (
@@ -22,6 +40,7 @@ type Package struct {
 	Name        string      `json:"name" gorm:"not null" validate:"required"`
 	Description string      `json:"description" gorm:"type:text"`
 	Type        PackageType `json:"type" gorm:"not null" validate:"required"`
+	Category    string      `json:"category" gorm:"not null;default:'service'"` // 'service' or 'addon'
 	
 	// Pricing
 	Price         float64 `json:"price" gorm:"not null" validate:"required,gte=0"`
@@ -37,6 +56,7 @@ type Package struct {
 	RequiresTimeslot   bool   `json:"requires_timeslot" gorm:"not null;default:true"`
 	ManualAssignment   bool   `json:"manual_assignment" gorm:"not null;default:false"`
 	ConsultationTime   int    `json:"consultation_time" gorm:"default:60"` // in minutes
+	DurationMinutes    int    `json:"duration_minutes" gorm:"default:60"` // in minutes
 	HasFreePreTalk     bool   `json:"has_free_pre_talk" gorm:"not null;default:false"`
 	PreTalkDuration    int    `json:"pre_talk_duration" gorm:"default:15"` // in minutes
 	
